@@ -568,7 +568,7 @@ export default function DashboardPage() {
       try {
         const res = await axios.get(url, {
           headers: authHeader(),
-          timeout: 8000,
+          timeout: 30000,
         });
         let data: any[] = [];
         if (Array.isArray(res.data)) data = res.data;
