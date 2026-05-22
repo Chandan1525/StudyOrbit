@@ -292,7 +292,6 @@ export default function CommunityPage() {
               <span className="text-[11px] text-accent font-bold">{filteredChannels.length} Active</span>
             </div>
 
-            {/* Dashboard-style Orbit Cards */}
             {/* Dashboard-style Orbit Cards (Scaled down fonts for elegance) */}
             {filteredChannels.length > 0 ? (
               filteredChannels.map((channel, index) => {
@@ -485,24 +484,24 @@ export default function CommunityPage() {
                 className="relative flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-300"
               >
                 {active && <div className="absolute inset-0 rounded-2xl bg-accent opacity-10 dark:opacity-15" />}
-                <div className="relative z-10">
+                <div className="relative z-10 flex flex-col items-center">
                   <item.icon 
                     size={22} 
                     className={`transition-all duration-300 ${active ? "" : "text-gray-400 dark:text-white/40"}`} 
                     style={{ color: active ? "var(--accent-color)" : "currentColor" }} 
                   />
                   {item.badge && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
+                    <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
                       {item.badge}
                     </span>
                   )}
-                <span 
-                  className={`relative z-10 text-[10px] font-bold transition-colors duration-300 ${active ? "" : "text-gray-500 dark:text-white/40"}`} 
-                  style={{ color: active ? "var(--accent-color)" : "" }}
-                >
-                  {item.label}
-                // ... upar ka code
-                </span>
+                  <span 
+                    className={`text-[10px] font-bold transition-colors duration-300 mt-1 ${active ? "" : "text-gray-500 dark:text-white/40"}`} 
+                    style={{ color: active ? "var(--accent-color)" : "" }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
               </button>
             );
           })}
