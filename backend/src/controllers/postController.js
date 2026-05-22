@@ -25,9 +25,9 @@ export const searchPosts = async (req, res) => {
         { hashtags: { $regex: searchQuery, $options: 'i' } }
       ]
     })
-    .populate('author', 'username avatar name')
-    .sort({ createdAt: -1 });
-    
+      .populate('author', 'username avatar name')
+      .sort({ createdAt: -1 });
+
     return res.status(200).json(results);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -40,11 +40,11 @@ export const getPostsByTopic = async (req, res) => {
     const { domain } = req.params;
     console.log(`📡 Backend filtering for orbit: ${domain}`);
 
-    const posts = await Post.find({ 
-      orbit: { $regex: new RegExp(`^${domain}$`, 'i') } 
+    const posts = await Post.find({
+      orbit: { $regex: new RegExp(`^${domain}$`, 'i') }
     })
-    .populate('author', 'username avatar name')
-    .sort({ createdAt: -1 });
+      .populate('author', 'username avatar name')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json(posts);
   } catch (error) {
@@ -57,7 +57,7 @@ export const likePost = async (req, res) => {
   try {
     const { id } = req.params;
     // 🔥 FIX: Ab hum frontend ka wait nahi karenge, direct token se ID nikal lenge
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
@@ -67,12 +67,12 @@ export const likePost = async (req, res) => {
 
     if (index === -1) {
       post.likes.push(userId); // Pehli baar kiya toh Like
-      
+
       // Notification Logic
       if (post.author.toString() !== userId.toString()) {
         await Notification.create({
-          recipient: post.author, 
-          sender: userId,         
+          recipient: post.author,
+          sender: userId,
           type: "like",
           post: post._id
         });
@@ -132,7 +132,7 @@ export const createPost = async (req, res) => {
 
     const newPost = await Post.create({
       caption,
-      image: image || "", 
+      image: image || "",
       hashtags: hashtags || [],
       orbit,
       author: authorId
@@ -152,10 +152,11 @@ export const createPost = async (req, res) => {
 export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    const posts = await Post.find({ author: userId })
+
+    const posts = await Post.find({})
       .populate('author', 'username name avatar')
-      .sort({ createdAt: -1 }); // 🔥 Yahan bhi latest pehle aayega
+      .sort({ createdAt: -1 })
+      .limit(10); // 🔥 Yahan bhi latest pehle aayega
 
     return res.status(200).json(posts);
   } catch (error) {
