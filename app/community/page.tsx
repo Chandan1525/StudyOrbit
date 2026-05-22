@@ -501,13 +501,13 @@ export default function CommunityPage() {
                   style={{ color: active ? "var(--accent-color)" : "" }}
                 >
                   {item.label}
+                // ... upar ka code
                 </span>
               </button>
             );
           })}
         </div>
       </div>
-
     </div>
   );
 }
