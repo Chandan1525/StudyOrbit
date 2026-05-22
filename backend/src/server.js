@@ -5,15 +5,15 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import http from "http"; 
-import { Server } from "socket.io"; 
+import http from "http";
+import { Server } from "socket.io";
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import postRoutes from "./routes/postRoutes.js"; 
+import postRoutes from "./routes/postRoutes.js";
 import messageRoutes from './routes/messageRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import communityRoutes from './routes/communityRoutes.js'; 
+import communityRoutes from './routes/communityRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js'; // .js lagana zaroori hai!
 
 dotenv.config();
@@ -43,7 +43,7 @@ io.on("connection", (socket) => {
   // ==========================================
   // 1. GLOBAL & PERSONAL CHAT LOGIC
   // ==========================================
-  
+
   // Jab koi naya user app open karega
   socket.on("add_user", (userId) => {
     onlineUsers.set(socket.id, userId);
@@ -55,7 +55,7 @@ io.on("connection", (socket) => {
   socket.on("send_message", (data) => {
     // ❌ Pehle: io.emit("receive_message", data);  <- Ye sabko bhejta tha (Aapko bhi)
     // ✅ Ab: socket.broadcast.emit karna hai <- Ye aapko chhod kar baaki sabko bhejega
-    socket.broadcast.emit("receive_message", data); 
+    socket.broadcast.emit("receive_message", data);
   });
 
   // ==========================================
@@ -91,11 +91,11 @@ io.on("connection", (socket) => {
     socket.to(data.channel).emit("message_deleted", data);
   });
 
-  
+
   // ==========================================
   // 3. DISCONNECT LOGIC
   // ==========================================
-  
+
   // Jab koi app band karke jayega (Offline)
   socket.on("disconnect", () => {
     onlineUsers.delete(socket.id);
@@ -107,7 +107,7 @@ io.on("connection", (socket) => {
 
 // --- MIDDLEWARE ---
 app.use(helmet());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000", credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
@@ -125,9 +125,9 @@ const authLimiter = rateLimit({
 
 // --- ROUTES (CRITICAL ORDER) ---
 app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/posts", postRoutes); 
+app.use("/api/posts", postRoutes);
 
-app.use('/api/messages', messageRoutes); 
+app.use('/api/messages', messageRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/community', communityRoutes);
