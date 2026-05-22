@@ -486,7 +486,11 @@ export default function CommunityPage() {
               >
                 {active && <div className="absolute inset-0 rounded-2xl bg-accent opacity-10 dark:opacity-15" />}
                 <div className="relative z-10">
-                  <item.icon size={22} className="transition-all duration-300" style={{ color: active ? "var(--accent-color)" : "currentColor" }} className={active ? "" : "text-gray-400 dark:text-white/40"} />
+                  <item.icon 
+                    size={22} 
+                    className={`transition-all duration-300 ${active ? "" : "text-gray-400 dark:text-white/40"}`} 
+                    style={{ color: active ? "var(--accent-color)" : "currentColor" }} 
+                  />
                   {item.badge && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
                       {item.badge}
