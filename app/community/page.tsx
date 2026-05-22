@@ -496,8 +496,10 @@ export default function CommunityPage() {
                       {item.badge}
                     </span>
                   )}
-                </div>
-                <span className={`relative z-10 text-[10px] font-bold transition-colors duration-300`} style={{ color: active ? "var(--accent-color)" : "" }} className={active ? "" : "text-gray-500 dark:text-white/40"}>
+                <span 
+                  className={`relative z-10 text-[10px] font-bold transition-colors duration-300 ${active ? "" : "text-gray-500 dark:text-white/40"}`} 
+                  style={{ color: active ? "var(--accent-color)" : "" }}
+                >
                   {item.label}
                 </span>
               </button>
