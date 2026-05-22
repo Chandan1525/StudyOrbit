@@ -338,7 +338,7 @@ export default function ProfilePage() {
     skills: profileUser?.skills?.length
       ? profileUser.skills
       : FALLBACK_USER.skills,
-    posts: posts.length.toString(),
+    posts: (posts?.length || 0).toString(),
     followers: profileUser?.followers?.length || 0,
     following: profileUser?.following || 0,
   };
