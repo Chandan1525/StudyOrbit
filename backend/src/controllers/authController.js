@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import transporter from "../config/mail.js";
 import twilio from "twilio";
 import crypto from "crypto"; // 🔥 NEW: For unique Session IDs
+import { resend } from "../config/resend.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -33,6 +34,13 @@ const safeUser = (user) => ({
   github: user.github || "",
   linkedin: user.linkedin || "",
   coverGradient: user.coverGradient || "",
+});
+
+await resend.emails.send({
+  from: 'StudyOrbit <onboarding@resend.dev>', // Resend ka default domain hai
+  to: userEmail, // User ka email
+  subject: 'Your StudyOrbit OTP',
+  html: `<p>Your verification OTP is: <strong>${otp}</strong></p>`
 });
 
 export const googleLogin = async (req, res) => {
