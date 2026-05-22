@@ -289,9 +289,10 @@ export default function ProfilePage() {
         setProfileUser(freshData);
 
         // 2. Fetch Posts
+        // 2. Fetch Posts (🔥 FIX: URL Change ki, POSTS wale route par bheja)
         const token = localStorage.getItem("token");
         const postsRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/user/${userId}`, 
           {
             headers: { Authorization: `Bearer ${token}` },
           },

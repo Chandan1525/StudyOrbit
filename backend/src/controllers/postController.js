@@ -149,14 +149,16 @@ export const createPost = async (req, res) => {
 };
 
 // GET POSTS BY SPECIFIC USER (For Profile Page)
+// GET POSTS BY SPECIFIC USER (For Profile Page)
 export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const posts = await Post.find({})
+    // 🔥 FIX: {} ki jagah { author: userId } lagaya
+    const posts = await Post.find({ author: userId })
       .populate('author', 'username name avatar')
       .sort({ createdAt: -1 })
-      .limit(10); // 🔥 Yahan bhi latest pehle aayega
+      .limit(10); 
 
     return res.status(200).json(posts);
   } catch (error) {
