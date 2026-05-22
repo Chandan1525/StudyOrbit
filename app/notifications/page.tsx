@@ -15,7 +15,7 @@ export default function NotificationsPage() {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/notifications", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotifications(res.data);
@@ -31,7 +31,7 @@ export default function NotificationsPage() {
   const markAllRead = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put("http://localhost:5000/api/notifications/read", {}, {
+      await axios.put(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/notifications/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(notifications.map(n => ({ ...n, read: true })));

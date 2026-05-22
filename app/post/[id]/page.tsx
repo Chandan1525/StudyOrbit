@@ -6,7 +6,7 @@ import axios from "axios";
 import { ArrowLeft, Heart, MessageSquare, CheckCircle2, AlertCircle, Share2, Bookmark } from "lucide-react";
 import Link from "next/link";
 
-const API = "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export default function SinglePostPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();

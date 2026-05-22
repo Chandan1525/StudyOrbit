@@ -75,7 +75,7 @@ export default function CreatePostPage() {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/api/posts", postData, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts`, postData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
         }

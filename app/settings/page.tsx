@@ -124,7 +124,7 @@ export default function SettingsPage() {
     setIsDevicesLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/users/sessions", {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/sessions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDevices(res.data.sessions);
@@ -160,7 +160,7 @@ export default function SettingsPage() {
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `http://localhost:5000/api/users/sessions/${deviceId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/sessions/${deviceId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },

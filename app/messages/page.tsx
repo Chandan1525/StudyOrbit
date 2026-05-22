@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-const API = "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 const socket = io(API);
 
 const getAuthHeaders = () => {

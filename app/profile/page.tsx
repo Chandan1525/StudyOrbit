@@ -283,7 +283,7 @@ export default function ProfilePage() {
 
         // 1. Fetch FRESH Profile Data (for exact followers/following)
         const profileRes = await axios.get(
-          `http://localhost:5000/api/users/profile/${userId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
         );
         const freshData = profileRes.data.user;
         setProfileUser(freshData);
@@ -291,7 +291,7 @@ export default function ProfilePage() {
         // 2. Fetch Posts
         const token = localStorage.getItem("token");
         const postsRes = await axios.get(
-          `http://localhost:5000/api/posts/user/${userId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -302,7 +302,7 @@ export default function ProfilePage() {
         if (token) {
           try {
             const notifRes = await axios.get(
-              "http://localhost:5000/api/notifications",
+              `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/notifications`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               },

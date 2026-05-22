@@ -152,7 +152,7 @@ const handleSubmit = async (e: any) => {
 
       // Backend API Call
       const res = await axios.put(
-        "http://localhost:5000/api/users/update-profile", 
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/update-profile`,
         updatedData, 
         { headers: { Authorization: `Bearer ${token}` } }
       );

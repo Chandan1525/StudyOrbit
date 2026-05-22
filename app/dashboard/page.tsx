@@ -32,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 
-const API = "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 // ── Auth header helper ────────────────────────────────────────
 const authHeader = () => ({
@@ -529,7 +529,7 @@ export default function DashboardPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("http://localhost:5000/api/notifications", {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

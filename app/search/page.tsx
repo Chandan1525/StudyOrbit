@@ -44,11 +44,11 @@ export default function SearchPage() {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch Users
-        const usersRes = await axios.get("http://localhost:5000/api/users", { headers });
+        const usersRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users`, { headers });
         setDbUsers(usersRes.data.users || usersRes.data || []);
 
         // Fetch Posts (Dhyan rahe, yahan sirf ek baar 'const postsRes' likha hai)
-        const postsRes = await axios.get("http://localhost:5000/api/posts", { headers });
+        const postsRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts`, { headers });
         setDbPosts(postsRes.data || []);
 
       } catch (error) {

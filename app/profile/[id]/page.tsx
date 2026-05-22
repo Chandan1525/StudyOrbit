@@ -129,7 +129,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
     const fetchData = async () => {
       try {
         // 1. Profile Data Load Karna
-        const profileRes = await axios.get(`http://localhost:5000/api/users/profile/${userId}`);
+        const profileRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`);
         const data = profileRes.data.user;
         setProfileData(data);
         
@@ -142,7 +142,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
 
         // 🔥 2. Posts Fetch Karna (With Token Header)
         try {
-          const postsRes = await axios.get(`http://localhost:5000/api/posts/user/${userId}`, {
+          const postsRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/user/${userId}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
           });
           setUserPosts(postsRes.data || []);
@@ -170,7 +170,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.put(`http://localhost:5000/api/users/follow/${userId}`, {}, {
+      const res = await axios.put(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/follow/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
