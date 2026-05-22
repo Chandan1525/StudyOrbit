@@ -300,8 +300,8 @@ export default function SettingsPage() {
           </div>
         </div>
         <div
-          className="w-10 h-10 rounded-full overflow-hidden ring-2 transition-all"
-          style={{ ringColor: ac }}
+          className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all"
+          style={{ borderColor: ac }}
         >
           <img
             src={

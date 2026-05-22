@@ -487,13 +487,12 @@ export default function SearchPage() {
                 <div className="relative z-10">
                   <item.icon
                     size={22}
-                    className="transition-all duration-300"
+                    className={`transition-all duration-300 ${
+                      active ? "" : "text-gray-400 dark:text-slate-500"
+                    }`}
                     style={{
                       color: active ? "var(--accent-color)" : "currentColor",
                     }}
-                    className={
-                      active ? "" : "text-gray-400 dark:text-slate-500"
-                    }
                   />
                   {item.badge && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
@@ -502,9 +501,10 @@ export default function SearchPage() {
                   )}
                 </div>
                 <span
-                  className={`relative z-10 text-[10px] font-bold transition-colors duration-300`}
+                  className={`relative z-10 text-[10px] font-bold transition-colors duration-300 ${
+                    active ? "" : "text-gray-500 dark:text-slate-500"
+                  }`}
                   style={{ color: active ? "var(--accent-color)" : "" }}
-                  className={active ? "" : "text-gray-500 dark:text-slate-500"}
                 >
                   {item.label}
                 </span>
