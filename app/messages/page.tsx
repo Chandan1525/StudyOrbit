@@ -50,10 +50,10 @@ function ChatInterface() {
     socket.on("get_online_users", (usersArray) => {
       setOnlineUsers(usersArray);
     });
-    return () => socket.off("get_online_users");
+    // 🔥 FIX: Added curly braces to return void
+    return () => { socket.off("get_online_users"); };
   }, [currentUser]);
 
-  // 3. Fetch Sidebar Users
   // 3. Fetch Sidebar Users
   useEffect(() => {
     const fetchUsers = async () => {
@@ -123,7 +123,8 @@ function ChatInterface() {
         });
       }
     });
-    return () => socket.off("receive_message");
+    // 🔥 FIX: Added curly braces to return void
+    return () => { socket.off("receive_message"); };
   }, [activeChat, currentUser]);
 
   // Auto Scroll
@@ -369,17 +370,24 @@ function ChatInterface() {
                 className="relative flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-300"
               >
                 {active && <div className="absolute inset-0 rounded-2xl bg-accent opacity-10 dark:opacity-15" />}
-                <div className="relative z-10">
-                  <item.icon size={22} className="transition-all duration-300" style={{ color: active ? "var(--accent-color)" : "currentColor" }} className={active ? "" : "text-gray-400 dark:text-white/40"} />
+                <div className="relative z-10 flex flex-col items-center">
+                  <item.icon 
+                    size={22} 
+                    className={`transition-all duration-300 ${active ? "" : "text-gray-400 dark:text-white/40"}`} 
+                    style={{ color: active ? "var(--accent-color)" : "currentColor" }} 
+                  />
                   {item.badge && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
+                    <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
                       {item.badge}
                     </span>
                   )}
+                  <span 
+                    className={`text-[10px] font-bold transition-colors duration-300 mt-1 ${active ? "" : "text-gray-500 dark:text-white/40"}`} 
+                    style={{ color: active ? "var(--accent-color)" : "" }}
+                  >
+                    {item.label}
+                  </span>
                 </div>
-                <span className={`relative z-10 text-[10px] font-bold transition-colors duration-300`} style={{ color: active ? "var(--accent-color)" : "" }} className={active ? "" : "text-gray-500 dark:text-white/40"}>
-                  {item.label}
-                </span>
               </button>
             )
           })}
