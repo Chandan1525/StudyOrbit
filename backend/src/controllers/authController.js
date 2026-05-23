@@ -43,6 +43,7 @@ await resend.emails.send({
   html: `<p>Your verification OTP is: <strong>${otp}</strong></p>`
 });
 
+
 export const googleLogin = async (req, res) => {
   try {
     const { credential } = req.body;
