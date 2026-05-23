@@ -2,15 +2,13 @@ import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import transporter from "../config/mail.js";
 import twilio from "twilio";
-import crypto from "crypto"; // 🔥 NEW: For unique Session IDs
+import crypto from "crypto"; 
 import { resend } from "../config/resend.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ── Helper: generate JWT ──────────────────────────────────────────────
-// 🔥 FIX: Token ab sessionId ko bhi apne andar carry karega
 const generateToken = (userId, sessionId) => {
   return jwt.sign(
     { id: userId, sessionId: sessionId },
@@ -36,14 +34,6 @@ const safeUser = (user) => ({
   coverGradient: user.coverGradient || "",
 });
 
-await resend.emails.send({
-  from: 'StudyOrbit <onboarding@resend.dev>', // Resend ka default domain hai
-  to: userEmail, // User ka email
-  subject: 'Your StudyOrbit OTP',
-  html: `<p>Your verification OTP is: <strong>${otp}</strong></p>`
-});
-
-
 export const googleLogin = async (req, res) => {
   try {
     const { credential } = req.body;
@@ -54,7 +44,6 @@ export const googleLogin = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture } = payload;
 
-    // 🔥 CREATE UNIQUE SESSION INFO
     const sessionId = crypto.randomUUID();
     const device = req.headers["user-agent"] || "Unknown Device";
     const ip = req.ip || req.connection.remoteAddress || "Unknown IP";
@@ -71,10 +60,10 @@ export const googleLogin = async (req, res) => {
         isOtpVerified: true, 
         mobile: "0000000000", 
         avatar: picture,
-        sessions: [{ sessionId, device, ip }] // Save initial session
+        sessions: [{ sessionId, device, ip }]
       });
     } else {
-      user.sessions.push({ sessionId, device, ip }); // Add new session
+      user.sessions.push({ sessionId, device, ip });
       await user.save();
     }
 
@@ -109,20 +98,18 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid username." });
     }
     
-    // Check duplicates
     if (await User.findOne({ email })) return res.status(409).json({ success: false, message: "Email already registered." });
     if (await User.findOne({ username })) return res.status(409).json({ success: false, message: "Username taken." });
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // 🔥 CREATE UNIQUE SESSION INFO
     const sessionId = crypto.randomUUID();
     const device = req.headers["user-agent"] || "Unknown Device";
     const ip = req.ip || req.connection.remoteAddress || "Unknown IP";
 
     const user = await User.create({
       name, username, email, mobile, password: hashedPassword,
-      sessions: [{ sessionId, device, ip }] // First session saved
+      sessions: [{ sessionId, device, ip }]
     });
 
     const token = generateToken(user._id, sessionId);
@@ -155,7 +142,6 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials." });
     }
 
-    // 🔥 CREATE UNIQUE SESSION INFO
     const sessionId = crypto.randomUUID();
     const device = req.headers["user-agent"] || "Unknown Device";
     const ip = req.ip || req.connection.remoteAddress || "Unknown IP";
@@ -231,9 +217,10 @@ export const forgotPassword = async (req, res) => {
       return res.status(200).json({ success: true, message: "OTP sent successfully to your mobile number." });
     } else {
       console.log(`Preparing to send Email to ${user.email}...`);
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: user.email,
+      
+      await resend.emails.send({
+        from: 'StudyOrbit <onboarding@resend.dev>', 
+        to: user.email, 
         subject: "StudyOrbit Password Reset OTP",
         html: `
           <div style="font-family: sans-serif; text-align: center; padding: 20px;">
@@ -244,6 +231,7 @@ export const forgotPassword = async (req, res) => {
           </div>
         `,
       });
+      
       console.log(`✅ Email sent successfully to ${user.email}`);
       return res.status(200).json({ success: true, message: "OTP sent successfully to your email address." });
     }
