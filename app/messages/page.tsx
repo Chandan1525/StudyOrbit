@@ -54,13 +54,14 @@ function ChatInterface() {
     return () => { socket.off("get_online_users"); };
   }, [currentUser]);
 
-  // 3. Fetch Sidebar Users
+  // 3. Fetch Sidebar Users (🔥 API ROUTE FIXED HERE 🔥)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get(`${API}/api/users`, { headers: getAuthHeaders() });
+        // Yahan par humne route ko '/api/users' se '/api/users/sidebar' kar diya hai
+        const res = await axios.get(`${API}/api/users/sidebar`, { headers: getAuthHeaders() });
         
-        // 🔥 FIX: Check if data is inside 'users' key (res.data.users) or direct array
+        // FIX: Check if data is inside 'users' key (res.data.users) or direct array
         const userList = res.data.users || res.data || [];
         
         const otherUsers = userList.filter(
