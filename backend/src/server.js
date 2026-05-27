@@ -30,10 +30,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-  }
+    origin: [
+      "http://localhost:3000",
+      "https://study-orbit-taupe.vercel.app" // 🔥 Tumhara Vercel domain yahan add ho gaya
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 // Jo online users ko track karega (Green Dot ke liye)
