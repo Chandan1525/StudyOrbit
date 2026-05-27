@@ -276,9 +276,13 @@ function ChatInterface() {
                     key={user._id}
                     onClick={() => {
                       setActiveChat(user);
-                      setUnreadCount(0); // 👈 Ye line chat open hote hi notification gayab kar degi
+                      setUnreadCount(0);
                     }}
-                    className={`w-full p-3 rounded-[20px] transition-all... `}
+                    className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${
+                      isActive
+                        ? "bg-accent/10 dark:bg-accent/20 ring-1 ring-accent/30 shadow-sm"
+                        : "hover:bg-gray-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="relative flex-shrink-0">
                       <img
