@@ -506,11 +506,12 @@ function ChatInterface() {
                       color: active ? "var(--accent-color)" : "currentColor",
                     }}
                   />
-                  {item.badge && (
+                  {/* 🔥 EXACT FIX HERE: TypeScript aur Zero-fallback error resolved 🔥 */}
+                  {(item as any).badge ? (
                     <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
-                      {item.badge}
+                      {Number((item as any).badge)}
                     </span>
-                  )}
+                  ) : null}
                   <span
                     className={`text-[10px] font-bold transition-colors duration-300 mt-1 ${active ? "" : "text-gray-500 dark:text-white/40"}`}
                     style={{ color: active ? "var(--accent-color)" : "" }}
