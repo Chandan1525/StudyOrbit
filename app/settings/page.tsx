@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import BottomNav from "@/components/BottomNav"; 
+
+
 import {
   Home,
   Search,
@@ -745,54 +748,7 @@ export default function SettingsPage() {
       </AnimatePresence>
 
       {/* FOOTER */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-slate-800 px-2 py-2.5 flex items-center justify-around transition-colors">
-          {NAV.map((item) => {
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (item.id === "home") router.push("/dashboard");
-                  if (item.id === "search") router.push("/search");
-                  if (item.id === "community" || item.id === "explore")
-                    router.push("/community");
-                  if (item.id === "profile") router.push("/profile");
-                  if (item.id === "chats") router.push("/messages");
-                }}
-                className="relative flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-300"
-              >
-                {active && (
-                  <div
-                    className="absolute inset-0 rounded-2xl opacity-10 dark:opacity-15"
-                    style={{ backgroundColor: "var(--accent-color)" }}
-                  />
-                )}
-                <div className="relative z-10">
-                  <item.icon
-                    size={22}
-                    className={`transition-all duration-300 ${active ? "" : "text-gray-400 dark:text-slate-500"}`}
-                    style={{ color: active ? "var(--accent-color)" : "" }}
-                  />
-                  {/* 🔥 EXACT FIX HERE: TypeScript aur Zero-fallback error resolved 🔥 */}
-                  {(item as any).badge ? (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
-                      {Number((item as any).badge)}
-                    </span>
-                  ) : null}
-                </div>
-                <span
-                  className={`relative z-10 text-[10px] font-bold transition-colors duration-300 ${active ? "" : "text-gray-500 dark:text-slate-500"}`}
-                  style={{ color: active ? "var(--accent-color)" : "" }}
-                >
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <BottomNav />
     </div>
   );
 }

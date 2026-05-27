@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
+import BottomNav from "@/components/BottomNav"; 
 
 import {
   Home,
@@ -835,48 +836,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Bottom nav ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="bg-gradient-to-r from-[#0f172a]/95 via-[#111827]/95 to-[#1e1b4b]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-2 flex items-center justify-around">
-          {NAV.map((item) => {
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNav(item.id)}
-                className="relative flex flex-col items-center justify-center gap-1 px-4 py-2 transition-all duration-300"
-              >
-                {active && (
-                  <div className="absolute inset-0 rounded-2xl bg-accent opacity-15" />
-                )}
-                <div className="relative z-10">
-                  <item.icon
-                    size={22}
-                    className="transition-all duration-300"
-                    style={{ color: active ? "var(--accent-color)" : "rgba(255,255,255,0.4)" }}
-                  />
-                  {(item as any).badge && (
-                    <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {(item as any).badge}
-                    </span>
-                  )}
-                </div>
-                <span
-                  className="relative z-10 text-[11px] font-semibold transition-colors duration-300"
-                  style={{ color: active ? "var(--accent-color)" : "rgba(255,255,255,0.4)" }}
-                >
-                  {item.label}
-                </span>
-                {active && (
-                  <div 
-                    className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-accent" 
-                    style={{ boxShadow: "0 0 10px var(--accent-color)" }} 
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <BottomNav />
     </div>
   );
 }
