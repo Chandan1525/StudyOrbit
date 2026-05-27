@@ -361,7 +361,7 @@ export default function ProfilePage() {
     { id: "home", icon: Home, label: "Home" },
     { id: "search", icon: Search, label: "Search" },
     { id: "explore", icon: Compass, label: "Explore" },
-    { id: "chats", icon: MessageCircle, label: "Chats", badge: 5 },
+    { id: "chats", icon: MessageCircle, label: "Chats" },
     { id: "profile", icon: User, label: "Profile" },
   ];
 

@@ -29,7 +29,7 @@ export default function CommunityPage() {
     { id: "home", icon: Home, label: "Home" },
     { id: "search", icon: Search, label: "Search" },
     { id: "community", icon: Users, label: "Community" },
-    { id: "chats", icon: MessageCircle, label: "Chats", badge: 5 },
+    { id: "chats", icon: MessageCircle, label: "Chats" },
     { id: "profile", icon: User, label: "Profile" },
   ];
 
