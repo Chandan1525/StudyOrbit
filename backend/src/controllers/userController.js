@@ -1,20 +1,36 @@
 import User from '../models/User.js';
-import Message from '../models/Message.js'; // 👈 Ye import zaroori hai
+import Message from '../models/Message.js';
 import Notification from "../models/Notification.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
     const loggedInUserId = req.user.id;
 
-    // 1. Saare users nikalo (khud ko chhod kar)
-    const users = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+    // 1. Current user ka data fetch karo taaki uske connections mil sakein
+    const currentUser = await User.findById(loggedInUserId);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Current user not found" });
+    }
 
-    // 2. Current user ke saare messages nikalo (Latest sabse pehle)
+    // 2. Followers aur Following arrays ko combine karo (Duplicates hatane ke liye Set ka use kiya)
+    const connectedUserIds = [
+      ...new Set([
+        ...currentUser.followers.map(id => id.toString()),
+        ...currentUser.following.map(id => id.toString())
+      ])
+    ];
+
+    // 3. Sirf wahi users nikalo jinki ID 'connectedUserIds' mein hai (aur khud ko exclude karo)
+    const users = await User.find({ 
+      _id: { $in: connectedUserIds, $ne: loggedInUserId } 
+    }).select("-password");
+
+    // 4. Current user ke saare messages nikalo (Latest sabse pehle)
     const messages = await Message.find({
       $or: [{ sender: loggedInUserId }, { receiver: loggedInUserId }]
     }).sort({ createdAt: -1 });
 
-    // 3. Har user ka aakhri (latest) message time ek Map mein save karo
+    // 5. Har user ka aakhri (latest) message time ek Map mein save karo
     const lastMessageMap = new Map();
     messages.forEach((msg) => {
       const otherUserId = msg.sender.toString() === loggedInUserId.toString() 
@@ -26,7 +42,7 @@ export const getUsersForSidebar = async (req, res) => {
       }
     });
 
-    // 4. Users ko us time ke hisaab se Sort karo (Jisse latest baat hui, wo No. 1 par)
+    // 6. Users ko us time ke hisaab se Sort karo (Jisse latest baat hui, wo No. 1 par)
     const sortedUsers = users.sort((a, b) => {
       const timeA = lastMessageMap.get(a._id.toString()) || 0;
       const timeB = lastMessageMap.get(b._id.toString()) || 0;
@@ -64,7 +80,6 @@ export const getUserProfile = async (req, res) => {
         github: user.github,
         linkedin: user.linkedin,
         coverGradient: user.coverGradient,
-        // 🔥 Yahan dhyaan de: length ki jagah pura array bhej rahe hain
         followers: user.followers || [], 
         following: user.following?.length || 0,
       }
