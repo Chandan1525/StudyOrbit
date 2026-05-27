@@ -21,9 +21,11 @@ export const getUsersForSidebar = async (req, res) => {
     ];
 
     // 3. Sirf wahi users nikalo jinki ID 'connectedUserIds' mein hai (aur khud ko exclude karo)
-    const users = await User.find({ 
-      _id: { $in: connectedUserIds, $ne: loggedInUserId } 
+    const users = await User.find({
+      _id: { $in: connectedUserIds, $ne: loggedInUserId }
     }).select("-password");
+    console.log("Connected User IDs:", connectedUserIds);
+    console.log("Users sent to frontend:", users.length);
 
     // 4. Current user ke saare messages nikalo (Latest sabse pehle)
     const messages = await Message.find({
@@ -33,10 +35,10 @@ export const getUsersForSidebar = async (req, res) => {
     // 5. Har user ka aakhri (latest) message time ek Map mein save karo
     const lastMessageMap = new Map();
     messages.forEach((msg) => {
-      const otherUserId = msg.sender.toString() === loggedInUserId.toString() 
-        ? msg.receiver.toString() 
+      const otherUserId = msg.sender.toString() === loggedInUserId.toString()
+        ? msg.receiver.toString()
         : msg.sender.toString();
-        
+
       if (!lastMessageMap.has(otherUserId)) {
         lastMessageMap.set(otherUserId, msg.createdAt.getTime());
       }
@@ -61,7 +63,7 @@ export const getUsersForSidebar = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────
 export const getUserProfile = async (req, res) => {
   try {
-    const userId = req.params.id; 
+    const userId = req.params.id;
     const user = await User.findById(userId).select("-password");
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -80,7 +82,7 @@ export const getUserProfile = async (req, res) => {
         github: user.github,
         linkedin: user.linkedin,
         coverGradient: user.coverGradient,
-        followers: user.followers || [], 
+        followers: user.followers || [],
         following: user.following?.length || 0,
       }
     });
@@ -95,8 +97,8 @@ export const getUserProfile = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────
 export const toggleFollow = async (req, res) => {
   try {
-    const targetUserId = req.params.id; 
-    const loggedInUserId = req.user.id; 
+    const targetUserId = req.params.id;
+    const loggedInUserId = req.user.id;
 
     if (targetUserId === loggedInUserId) {
       return res.status(400).json({ message: "You cannot follow yourself" });
@@ -133,11 +135,11 @@ export const toggleFollow = async (req, res) => {
     await targetUser.save();
     await currentUser.save();
 
-    res.status(200).json({ 
-      success: true, 
-      isFollowing: !isFollowing, 
+    res.status(200).json({
+      success: true,
+      isFollowing: !isFollowing,
       followersCount: targetUser.followers.length,
-      followingCount: currentUser.following.length 
+      followingCount: currentUser.following.length
     });
   } catch (error) {
     console.error("Follow Error:", error);
