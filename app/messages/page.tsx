@@ -276,41 +276,62 @@ function ChatInterface() {
 
     const msgId = Date.now().toString();
 
-    // Note: If you want to actually upload files to a backend, you'll need to use FormData here.
-    // For now, it appends a placeholder string so the UI registers it was sent.
-    const messageText =
-      newMessage || (selectedFile ? `[Attachment: ${selectedFile.name}]` : "");
+    // 1. Create a temporary local URL so YOU can see the image immediately
+    let localImageUrl = "";
+    if (selectedFile) {
+      localImageUrl = URL.createObjectURL(selectedFile);
+    }
 
+    // Temporary message for your own screen (Notice we removed the [Attachment] text fallback here)
     const tempMsg = {
       _id: msgId,
       sender: currentUser?._id || currentUser?.id,
       receiver: activeChat._id,
-      text: messageText,
+      text: newMessage,
+      image: localImageUrl, // Add the image field
       createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, tempMsg]);
 
-    // Clear inputs after sending
+    // Clear inputs immediately for a snappy UI
+    const textToSend = newMessage;
+    const fileToSend = selectedFile;
     setNewMessage("");
     setSelectedFile(null);
     setShowEmojiPicker(false);
 
+    // Move user to top of sidebar
     setChatUsers((prev) => {
       const otherUsers = prev.filter((u) => u._id !== activeChat._id);
       return [activeChat, ...otherUsers];
     });
 
-    socket.emit("send_message", tempMsg);
+    // 2. Prepare FormData to send the actual file to the backend
+    const formData = new FormData();
+    if (textToSend) formData.append("text", textToSend);
+    if (fileToSend) formData.append("image", fileToSend);
 
     try {
-      await axios.post(
+      // 3. Send file to backend
+      const res = await axios.post(
         `${API}/api/messages/${activeChat._id}`,
-        { text: tempMsg.text },
-        { headers: getAuthHeaders() },
+        formData,
+        {
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
+
+      const savedMessage = res.data;
+
+      // 4. Emit the REAL message (with the permanent Cloudinary URL) to the other person via socket
+      socket.emit("send_message", savedMessage);
     } catch (err) {
       console.error("Message save failed", err);
+      // Remove the temporary message if the upload fails
       setMessages((prev) => prev.filter((m) => m._id !== msgId));
     }
   };
@@ -551,9 +572,23 @@ function ChatInterface() {
                               : "bg-white dark:bg-slate-800/80 text-gray-700 dark:text-white/90 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm"
                           }`}
                         >
-                          <p className="leading-relaxed text-[15px]">
-                            {msg.text}
-                          </p>
+                          {/* 🔥 Render the Image if it exists 🔥 */}
+                          {msg.image && (
+                            <img
+                              src={msg.image}
+                              alt="Shared attachment"
+                              className="max-w-full h-auto rounded-lg mb-2 object-cover"
+                              style={{ maxHeight: "300px" }}
+                            />
+                          )}
+
+                          {/* Render the Text if it exists */}
+                          {msg.text && (
+                            <p className="leading-relaxed text-[15px]">
+                              {msg.text}
+                            </p>
+                          )}
+
                           <p
                             className={`text-[10px] mt-1.5 font-medium text-right ${isMe ? "text-gray-500 dark:text-white/60" : "text-gray-400 dark:text-white/40"}`}
                           >
