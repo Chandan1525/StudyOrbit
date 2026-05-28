@@ -35,7 +35,7 @@ const getAuthHeaders = () => {
 function ChatInterface() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preSelectedUserId = searchParams.get("chat"); // URL se ID nikal li
+  const preSelectedUserId = searchParams.get("chat");
 
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -46,37 +46,31 @@ function ChatInterface() {
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
-  // 🔥 Emoji & Attachment States 🔥
+  // Emoji & Attachment States
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 🔥 Edit / Delete States 🔥
+  // Edit / Delete / View States
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null); // For Mobile Taps
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null); // For Image Previews
 
-  // 🔥 Green Dot Track karne ke liye state
+  // Green Dot Track
   const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
     {},
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 🔥 Chat Settings Modal States
+  // Chat Settings Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingMute, setSettingMute] = useState(false);
   const [settingOnline, setSettingOnline] = useState(true);
-
-  // 🔥 NAYA: Wallpaper Tracker aur List
   const [chatWallpaper, setChatWallpaper] = useState<string>("");
 
-  // 🔥 Full Screen Image State 🔥
-  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
-
-  // 🔥 Track which message has its action menu open (for mobile taps)
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-
   const WALLPAPERS = [
-    { id: "default", name: "Default", url: "" }, // Khaali = Theme color
+    { id: "default", name: "Default", url: "" },
     {
       id: "doodle",
       name: "Doodle",
@@ -106,13 +100,11 @@ function ChatInterface() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 1. Get Current User
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  // 2. Socket Connection (AB TOGGLE KE SATH CONNECTED HAI)
   useEffect(() => {
     if (currentUser) {
       if (settingOnline) {
@@ -122,26 +114,19 @@ function ChatInterface() {
         socket.disconnect();
       }
     }
-
-    socket.on("get_online_users", (usersArray) => {
-      setOnlineUsers(usersArray);
-    });
-
+    socket.on("get_online_users", (usersArray) => setOnlineUsers(usersArray));
     return () => {
       socket.off("get_online_users");
     };
   }, [currentUser, settingOnline]);
 
-  // 3. Fetch Sidebar Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const res = await axios.get(`${API}/api/users/sidebar`, {
           headers: getAuthHeaders(),
         });
-
         const userList = res.data.users || res.data || [];
-
         const otherUsers = userList.filter(
           (u: any) => u._id !== currentUser?._id && u._id !== currentUser?.id,
         );
@@ -153,14 +138,11 @@ function ChatInterface() {
     if (currentUser) fetchUsers();
   }, [currentUser]);
 
-  // 4. AUTO-SELECT CHAT IF URL HAS '?chat=ID'
   useEffect(() => {
     if (!preSelectedUserId) return;
-
     const existingUser = chatUsers.find(
       (u) => u._id === preSelectedUserId || u.id === preSelectedUserId,
     );
-
     if (existingUser) {
       setActiveChat(existingUser);
     } else if (currentUser) {
@@ -180,13 +162,10 @@ function ChatInterface() {
           });
           setActiveChat(formattedUser);
         })
-        .catch((err) =>
-          console.error("Could not fetch user for direct chat", err),
-        );
+        .catch((err) => console.error("Could not fetch user", err));
     }
   }, [preSelectedUserId, chatUsers.length, currentUser]);
 
-  // 5. Fetch Messages
   useEffect(() => {
     const fetchMessages = async () => {
       if (!activeChat) return;
@@ -202,11 +181,10 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-  // 6. 🔥 Real-time incoming messages, Edits, Deletes 🔥
+  // SOCKET LISTENERS
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
-
       if (
         activeChat &&
         (data.sender === activeChat._id ||
@@ -220,7 +198,6 @@ function ChatInterface() {
       } else {
         if (data.sender !== myId) {
           setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
-
           if (!settingMute) {
             try {
               const audio = new Audio(
@@ -228,7 +205,7 @@ function ChatInterface() {
               );
               audio
                 .play()
-                .catch((err) => console.log("Browser blocked auto-play"));
+                .catch(() => console.log("Browser blocked auto-play"));
             } catch (error) {
               console.error("Audio error", error);
             }
@@ -241,7 +218,6 @@ function ChatInterface() {
         const existingIndex = prevUsers.findIndex(
           (u) => u._id === targetUserId || u.id === targetUserId,
         );
-
         if (existingIndex > -1) {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
@@ -253,8 +229,6 @@ function ChatInterface() {
     };
 
     socket.on("receive_message", handleReceiveMessage);
-
-    // 🔥 Listen for Edits
     socket.on("message_edited", (data: { _id: string; text: string }) => {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -262,8 +236,6 @@ function ChatInterface() {
         ),
       );
     });
-
-    // 🔥 Listen for Deletes
     socket.on("message_deleted", (data: { _id: string }) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
     });
@@ -275,12 +247,10 @@ function ChatInterface() {
     };
   }, [activeChat, currentUser, settingMute]);
 
-  // Auto Scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handlers for File and Emoji
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -296,11 +266,8 @@ function ChatInterface() {
     if ((!newMessage.trim() && !selectedFile) || !activeChat) return;
 
     const msgId = Date.now().toString();
-
     let localImageUrl = "";
-    if (selectedFile) {
-      localImageUrl = URL.createObjectURL(selectedFile);
-    }
+    if (selectedFile) localImageUrl = URL.createObjectURL(selectedFile);
 
     const tempMsg = {
       _id: msgId,
@@ -339,9 +306,7 @@ function ChatInterface() {
           },
         },
       );
-
-      const savedMessage = res.data;
-      socket.emit("send_message", savedMessage);
+      socket.emit("send_message", res.data);
     } catch (err) {
       console.error("Message save failed", err);
       setMessages((prev) => prev.filter((m) => m._id !== msgId));
@@ -350,12 +315,8 @@ function ChatInterface() {
 
   // 🔥 DELETE MESSAGE
   const handleDeleteMessage = async (msgId: string) => {
-    // Optimistic update
     setMessages((prev) => prev.filter((m) => m._id !== msgId));
-
-    // Emit to other user
     socket.emit("delete_message", { _id: msgId, receiver: activeChat._id });
-
     try {
       await axios.delete(`${API}/api/messages/${msgId}`, {
         headers: getAuthHeaders(),
@@ -368,14 +329,11 @@ function ChatInterface() {
   // 🔥 SUBMIT EDIT
   const submitEdit = async (msgId: string) => {
     if (!editText.trim()) return;
-
-    // Optimistic update
     setMessages((prev) =>
       prev.map((msg) => (msg._id === msgId ? { ...msg, text: editText } : msg)),
     );
     setEditingMessageId(null);
-
-    // Emit to other user
+    setActiveMenuId(null);
     socket.emit("edit_message", {
       _id: msgId,
       text: editText,
@@ -415,7 +373,6 @@ function ChatInterface() {
                 Connect with developers
               </p>
             </div>
-
             <div className="relative">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -426,7 +383,6 @@ function ChatInterface() {
                   className="text-gray-600 dark:text-white/70"
                 />
               </button>
-
               {isMenuOpen && (
                 <>
                   <div
@@ -479,7 +435,6 @@ function ChatInterface() {
               filteredUsers.map((user) => {
                 const isActive = activeChat?._id === user._id;
                 const isUserOnline = onlineUsers.includes(user._id);
-
                 return (
                   <button
                     key={user._id}
@@ -490,11 +445,7 @@ function ChatInterface() {
                         [user._id]: false,
                       }));
                     }}
-                    className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${
-                      isActive
-                        ? "bg-accent/10 dark:bg-accent/20 ring-1 ring-accent/30 shadow-sm"
-                        : "hover:bg-gray-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${isActive ? "bg-accent/10 dark:bg-accent/20 ring-1 ring-accent/30 shadow-sm" : "hover:bg-gray-100 dark:hover:bg-slate-800/50"}`}
                   >
                     <div className="relative flex-shrink-0">
                       <img
@@ -527,7 +478,6 @@ function ChatInterface() {
                         )}
                       </p>
                     </div>
-
                     {unreadChats[user._id] && (
                       <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                     )}
@@ -599,7 +549,7 @@ function ChatInterface() {
                 </div>
               </div>
 
-              {/* MESSAGES LAYER */}
+              {/* MESSAGES LAYER WITH CLICK-AWAY LISTENER */}
               <div
                 onClick={() => setActiveMenuId(null)}
                 className="flex-1 overflow-y-auto px-4 md:px-8 py-7 space-y-4 custom-scrollbar pb-44"
@@ -614,24 +564,24 @@ function ChatInterface() {
                         key={msg._id || index}
                         className={`flex w-full group ${isMe ? "justify-end" : "justify-start"}`}
                       >
-                        {/* 🔥 Action Buttons: Shows on desktop hover OR on mobile tap */}
+                        {/* 🔥 ACTION BUTTONS: Shown on Desktop Hover OR Mobile Tap 🔥 */}
                         {isMe && editingMessageId !== msg._id && (
                           <div
                             className={`flex items-center gap-2 mr-2 transition-all duration-200 ${
                               activeMenuId === msg._id
-                                ? "opacity-100 translate-x-0"
+                                ? "opacity-100 translate-x-0 pointer-events-auto"
                                 : "opacity-0 scale-95 md:group-hover:opacity-100 md:group-hover:scale-100 pointer-events-none md:pointer-events-auto"
                             }`}
                           >
                             {msg.text && (
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Prevents menu from closing immediately
+                                  e.stopPropagation();
                                   setEditingMessageId(msg._id);
                                   setEditText(msg.text);
                                   setActiveMenuId(null);
                                 }}
-                                className="p-2 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700"
+                                className="p-2 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700 shadow-sm md:shadow-none"
                               >
                                 <Pencil size={15} />
                               </button>
@@ -642,18 +592,17 @@ function ChatInterface() {
                                 handleDeleteMessage(msg._id);
                                 setActiveMenuId(null);
                               }}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700"
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700 shadow-sm md:shadow-none"
                             >
                               <Trash2 size={15} />
                             </button>
                           </div>
                         )}
 
-                        {/* The Chat Bubble */}
                         <div
-                          onClick={() => {
-                            if (isMe) {
-                              // Tap once to open, tap again to close options
+                          onClick={(e) => {
+                            e.stopPropagation(); // 👈 THIS WAS MISSING: Prevents the background tap from firing!
+                            if (isMe && !editingMessageId) {
                               setActiveMenuId(
                                 activeMenuId === msg._id ? null : msg._id,
                               );
@@ -665,13 +614,13 @@ function ChatInterface() {
                               : "bg-white dark:bg-slate-800/80 text-gray-700 dark:text-white/90 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm"
                           }`}
                         >
-                          {/* Image attachment rendering */}
+                          {/* Image rendering */}
                           {msg.image && (
                             <img
                               src={msg.image}
                               alt="Shared attachment"
                               onClick={(e) => {
-                                e.stopPropagation(); // Stops the action buttons menu from popping up when you just want to preview an image
+                                e.stopPropagation();
                                 setFullScreenImage(msg.image);
                               }}
                               className="max-w-full h-auto rounded-lg mb-2 object-cover cursor-pointer hover:opacity-90 transition-opacity"
@@ -679,7 +628,7 @@ function ChatInterface() {
                             />
                           )}
 
-                          {/* Editable Input or standard text */}
+                          {/* Editable Text Field OR Standard Text */}
                           {editingMessageId === msg._id ? (
                             <div
                               className="flex items-center gap-2 mt-1"
@@ -743,7 +692,10 @@ function ChatInterface() {
               </div>
 
               {/* CHAT INPUT LAYER */}
-              <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
+              <div
+                onClick={() => setActiveMenuId(null)} // Clear active mobile menus
+                className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors"
+              >
                 <div className="max-w-4xl mx-auto relative">
                   {showEmojiPicker && (
                     <div className="absolute bottom-[70px] right-0 z-50 shadow-2xl rounded-lg">
@@ -781,7 +733,6 @@ function ChatInterface() {
                     >
                       <Paperclip size={18} />
                     </button>
-
                     <input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
@@ -792,14 +743,12 @@ function ChatInterface() {
                       placeholder="Type a message..."
                       className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 text-[15px] px-2"
                     />
-
                     <button
                       onClick={() => setShowEmojiPicker((prev) => !prev)}
                       className="w-10 h-10 rounded-[14px] transition flex items-center justify-center text-gray-400 hover:text-accent dark:hover:text-accent"
                     >
                       <Smile size={20} />
                     </button>
-
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() && !selectedFile}
@@ -837,30 +786,6 @@ function ChatInterface() {
           )}
         </div>
       </div>
-
-      {/* ── 🔥 FULL SCREEN IMAGE PREVIEW MODAL 🔥 ── */}
-      {fullScreenImage && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
-          onClick={() => setFullScreenImage(null)} // Clicking the background closes it
-        >
-          {/* Close Button */}
-          <button
-            onClick={() => setFullScreenImage(null)}
-            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors z-50"
-          >
-            <X size={24} />
-          </button>
-
-          {/* The Image */}
-          <img
-            src={fullScreenImage}
-            alt="Full screen view"
-            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl scale-in-100 duration-200"
-            onClick={(e) => e.stopPropagation()} // Prevents closing if you click directly on the image
-          />
-        </div>
-      )}
 
       {/* ── CHAT SETTINGS MODAL ── */}
       {isSettingsOpen && (
@@ -963,6 +888,28 @@ function ChatInterface() {
           </motion.div>
         </div>
       )}
+
+      {/* ── 🔥 FULL SCREEN IMAGE PREVIEW MODAL 🔥 ── */}
+      {fullScreenImage && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setFullScreenImage(null)}
+        >
+          <button
+            onClick={() => setFullScreenImage(null)}
+            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors z-50"
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={fullScreenImage}
+            alt="Full screen view"
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl scale-in-100 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       <BottomNav />
     </div>
   );
