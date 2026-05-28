@@ -44,6 +44,11 @@ function ChatInterface() {
   // 🔥 Green Dot Track karne ke liye state
   const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // 🔥 Chat Settings Modal States
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingMute, setSettingMute] = useState(false);
+  const [settingOnline, setSettingOnline] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -279,7 +284,7 @@ function ChatInterface() {
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        // Future me yaha router.push('/settings') laga sakte ho
+                        setIsSettingsOpen(true); // 🔥 Isse Settings Box khulega
                       }}
                       className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
                     >
@@ -527,6 +532,79 @@ function ChatInterface() {
           )}
         </div>
       </div>
+
+      {/* 🔥 CHAT SETTINGS MODAL 🔥 */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Blur Background Overlay */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsSettingsOpen(false)}
+          ></div>
+          
+          {/* Modal Box */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800"
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
+              <h3 className="text-lg font-black text-gray-900 dark:text-white">Chat Settings</h3>
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-200/50 dark:bg-slate-800 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-white transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Options Body */}
+            <div className="p-6 space-y-6">
+              
+              {/* Option 1: Mute Notifications */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Mute Notifications</h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Pause chat sounds and alerts</p>
+                </div>
+                <button 
+                  onClick={() => setSettingMute(!settingMute)}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? 'bg-accent' : 'bg-gray-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingMute ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+
+              {/* Option 2: Show Online Status */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Show Online Status</h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Let others see when you're active</p>
+                </div>
+                <button 
+                  onClick={() => setSettingOnline(!settingOnline)}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? 'bg-accent' : 'bg-gray-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingOnline ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+
+              {/* Option 3: Chat Theme (Dummy Button) */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-800">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Chat Wallpaper</h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Customize your background</p>
+                </div>
+                <button className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-[11px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition">
+                  Change
+                </button>
+              </div>
+
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* ── FOOTER BAR ── */}
       <BottomNav />
