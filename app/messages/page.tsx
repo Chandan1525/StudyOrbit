@@ -72,6 +72,9 @@ function ChatInterface() {
   // 🔥 Full Screen Image State 🔥
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
+  // 🔥 Track which message has its action menu open (for mobile taps)
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
   const WALLPAPERS = [
     { id: "default", name: "Default", url: "" }, // Khaali = Theme color
     {
@@ -597,7 +600,10 @@ function ChatInterface() {
               </div>
 
               {/* MESSAGES LAYER */}
-              <div className="flex-1 overflow-y-auto px-4 md:px-8 py-7 space-y-4 custom-scrollbar pb-44">
+              <div
+                onClick={() => setActiveMenuId(null)}
+                className="flex-1 overflow-y-auto px-4 md:px-8 py-7 space-y-4 custom-scrollbar pb-44"
+              >
                 {messages.length > 0 ? (
                   messages.map((msg, index) => {
                     const isMe =
@@ -608,50 +614,77 @@ function ChatInterface() {
                         key={msg._id || index}
                         className={`flex w-full group ${isMe ? "justify-end" : "justify-start"}`}
                       >
-                        {/* 🔥 DELETE & EDIT BUTTONS (Shown on hover) */}
+                        {/* 🔥 Action Buttons: Shows on desktop hover OR on mobile tap */}
                         {isMe && editingMessageId !== msg._id && (
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+                          <div
+                            className={`flex items-center gap-2 mr-2 transition-all duration-200 ${
+                              activeMenuId === msg._id
+                                ? "opacity-100 translate-x-0"
+                                : "opacity-0 scale-95 md:group-hover:opacity-100 md:group-hover:scale-100 pointer-events-none md:pointer-events-auto"
+                            }`}
+                          >
                             {msg.text && (
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevents menu from closing immediately
                                   setEditingMessageId(msg._id);
                                   setEditText(msg.text);
+                                  setActiveMenuId(null);
                                 }}
-                                className="p-1.5 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-lg transition"
+                                className="p-2 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700"
                               >
-                                <Pencil size={14} />
+                                <Pencil size={15} />
                               </button>
                             )}
                             <button
-                              onClick={() => handleDeleteMessage(msg._id)}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteMessage(msg._id);
+                                setActiveMenuId(null);
+                              }}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition bg-gray-50 dark:bg-slate-800 md:bg-transparent border md:border-0 dark:border-slate-700"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={15} />
                             </button>
                           </div>
                         )}
 
+                        {/* The Chat Bubble */}
                         <div
-                          className={`max-w-[75%] px-5 py-3.5 shadow-sm transition-colors relative ${
+                          onClick={() => {
+                            if (isMe) {
+                              // Tap once to open, tap again to close options
+                              setActiveMenuId(
+                                activeMenuId === msg._id ? null : msg._id,
+                              );
+                            }
+                          }}
+                          className={`max-w-[75%] px-5 py-3.5 shadow-sm transition-colors relative cursor-pointer select-none ${
                             isMe
                               ? "bg-accent/10 text-gray-800 dark:bg-accent/20 dark:text-white border border-accent/20 rounded-[20px] rounded-tr-sm"
                               : "bg-white dark:bg-slate-800/80 text-gray-700 dark:text-white/90 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm"
                           }`}
                         >
-                          {/* Image rendering */}
+                          {/* Image attachment rendering */}
                           {msg.image && (
                             <img
                               src={msg.image}
                               alt="Shared attachment"
-                              onClick={() => setFullScreenImage(msg.image)} // Opens the modal
+                              onClick={(e) => {
+                                e.stopPropagation(); // Stops the action buttons menu from popping up when you just want to preview an image
+                                setFullScreenImage(msg.image);
+                              }}
                               className="max-w-full h-auto rounded-lg mb-2 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                               style={{ maxHeight: "300px" }}
                             />
                           )}
 
-                          {/* Editable Text Field OR Standard Text */}
+                          {/* Editable Input or standard text */}
                           {editingMessageId === msg._id ? (
-                            <div className="flex items-center gap-2 mt-1">
+                            <div
+                              className="flex items-center gap-2 mt-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <input
                                 type="text"
                                 value={editText}
@@ -807,12 +840,12 @@ function ChatInterface() {
 
       {/* ── 🔥 FULL SCREEN IMAGE PREVIEW MODAL 🔥 ── */}
       {fullScreenImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
           onClick={() => setFullScreenImage(null)} // Clicking the background closes it
         >
           {/* Close Button */}
-          <button 
+          <button
             onClick={() => setFullScreenImage(null)}
             className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors z-50"
           >
@@ -820,9 +853,9 @@ function ChatInterface() {
           </button>
 
           {/* The Image */}
-          <img 
-            src={fullScreenImage} 
-            alt="Full screen view" 
+          <img
+            src={fullScreenImage}
+            alt="Full screen view"
             className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl scale-in-100 duration-200"
             onClick={(e) => e.stopPropagation()} // Prevents closing if you click directly on the image
           />
