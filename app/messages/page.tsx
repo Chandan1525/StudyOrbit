@@ -42,7 +42,9 @@ function ChatInterface() {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   // 🔥 Green Dot Track karne ke liye state
-  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
+    {},
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 🔥 Chat Settings Modal States
@@ -55,9 +57,31 @@ function ChatInterface() {
 
   const WALLPAPERS = [
     { id: "default", name: "Default", url: "" }, // Khaali = Theme color
-    { id: "doodle", name: "Doodle", url: "https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg" },
-    { id: "cyberpunk", name: "Cyberpunk", url: "https://w0.peakpx.com/wallpaper/32/79/HD-wallpaper-cyberpunk-city-pixel-art-neon-city.jpg" },
-    { id: "abstract", name: "Abstract", url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" }
+    {
+      id: "doodle",
+      name: "Doodle",
+      url: "https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg",
+    },
+    {
+      id: "cyberpunk",
+      name: "Cyberpunk",
+      url: "https://w0.peakpx.com/wallpaper/32/79/HD-wallpaper-cyberpunk-city-pixel-art-neon-city.jpg",
+    },
+    {
+      id: "abstract",
+      name: "Abstract",
+      url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+    },
+    {
+      id: "dark-mesh",
+      name: "Dark Mesh",
+      url: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=2570&auto=format&fit=crop",
+    },
+    {
+      id: "neon-lines",
+      name: "Geometric Neon",
+      url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2570&auto=format&fit=crop",
+    },
   ];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -180,15 +204,19 @@ function ChatInterface() {
         // Agar kisi aur ka message aaya hai, toh use Unread mark karo (Green Dot lagao)
         if (data.sender !== myId) {
           setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
-          
+
           // 🔥 MUTE BUTTON LOGIC (SOUND PLAY KAREGA AGAR MUTE OFF HAI) 🔥
           if (!settingMute) {
             try {
               // Ye ek safe online URL hai ek choti si notification 'Pop' sound ke liye
-              const audio = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3");
-              
+              const audio = new Audio(
+                "https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3",
+              );
+
               // Browser kabhi-kabhi sound block kar deta hai bina user interaction ke, isliye catch lagaya hai
-              audio.play().catch((err) => console.log("Browser blocked auto-play"));
+              audio
+                .play()
+                .catch((err) => console.log("Browser blocked auto-play"));
             } catch (error) {
               console.error("Audio error", error);
             }
@@ -199,8 +227,10 @@ function ChatInterface() {
       // Jisne message bheja hai usko Sidebar list mein NO. 1 par le aao
       setChatUsers((prevUsers) => {
         const targetUserId = data.sender === myId ? data.receiver : data.sender;
-        const existingIndex = prevUsers.findIndex((u) => u._id === targetUserId || u.id === targetUserId);
-        
+        const existingIndex = prevUsers.findIndex(
+          (u) => u._id === targetUserId || u.id === targetUserId,
+        );
+
         if (existingIndex > -1) {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
@@ -216,7 +246,7 @@ function ChatInterface() {
     return () => {
       socket.off("receive_message", handleReceiveMessage);
     };
-  }, [activeChat, currentUser, settingMute]); 
+  }, [activeChat, currentUser, settingMute]);
 
   // Auto Scroll
   useEffect(() => {
@@ -419,7 +449,9 @@ function ChatInterface() {
         {/* ── CHAT AREA ── */}
         <div
           className={`${activeChat ? "flex" : "hidden md:flex"} flex-1 flex-col bg-transparent dark:bg-slate-950 h-full relative overflow-hidden transition-colors bg-cover bg-center`}
-          style={{ backgroundImage: chatWallpaper ? `url(${chatWallpaper})` : "none" }}
+          style={{
+            backgroundImage: chatWallpaper ? `url(${chatWallpaper})` : "none",
+          }}
         >
           {/* 🔥 Dark Overlay: Taaki text messages humesha clear dikhein 🔥 */}
           {chatWallpaper && (
@@ -576,7 +608,7 @@ function ChatInterface() {
         </div>
       </div>
 
-      {/* 🔥 CHAT SETTINGS MODAL 🔥 */}
+      {/* ── 🔥 CHAT SETTINGS MODAL 🔥 ── */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           {/* Blur Background Overlay */}
@@ -589,16 +621,14 @@ function ChatInterface() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800"
+            className="relative w-full max-w-sm bg-[#0b141a] dark:bg-slate-900 rounded-[24px] shadow-2xl overflow-hidden border border-gray-800"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
-              <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                Chat Settings
-              </h3>
+            <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between bg-[#0b141a]">
+              <h3 className="text-lg font-black text-white">Chat Settings</h3>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="w-8 h-8 rounded-full bg-gray-200/50 dark:bg-slate-800 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-white transition"
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white transition"
               >
                 ✕
               </button>
@@ -609,16 +639,16 @@ function ChatInterface() {
               {/* Option 1: Mute Notifications */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                  <h4 className="text-sm font-bold text-white">
                     Mute Notifications
                   </h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                  <p className="text-[11px] font-medium text-gray-400 mt-0.5">
                     Pause chat sounds and alerts
                   </p>
                 </div>
                 <button
                   onClick={() => setSettingMute(!settingMute)}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? "bg-accent" : "bg-gray-200 dark:bg-slate-700"}`}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? "bg-[#a855f7]" : "bg-gray-700"}`}
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingMute ? "translate-x-6" : "translate-x-0"}`}
@@ -629,16 +659,16 @@ function ChatInterface() {
               {/* Option 2: Show Online Status */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                  <h4 className="text-sm font-bold text-white">
                     Show Online Status
                   </h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                  <p className="text-[11px] font-medium text-gray-400 mt-0.5">
                     Let others see when you're active
                   </p>
                 </div>
                 <button
                   onClick={() => setSettingOnline(!settingOnline)}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? "bg-accent" : "bg-gray-200 dark:bg-slate-700"}`}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? "bg-[#a855f7]" : "bg-gray-700"}`}
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingOnline ? "translate-x-6" : "translate-x-0"}`}
@@ -647,45 +677,53 @@ function ChatInterface() {
               </div>
 
               {/* Option 3: Chat Wallpaper Gallery */}
-              <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+              {/* Option 3: Chat Wallpaper Gallery */}
+              <div className="pt-4 border-t border-gray-800">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                  <h4 className="text-sm font-bold text-white">
                     Chat Wallpaper
                   </h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5 mb-4">
+                  <p className="text-[11px] font-medium text-gray-400 mt-0.5 mb-4">
                     Customize your background
                   </p>
                 </div>
-                
-                {/* Horizontal Scrollable Wallpaper List */}
-                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-                  {WALLPAPERS.map((wp) => (
-                    <button
-                      key={wp.id}
-                      onClick={() => setChatWallpaper(wp.url)}
-                      className={`relative w-[72px] h-[96px] rounded-xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-300 ${
-                        chatWallpaper === wp.url 
-                          ? "ring-2 ring-accent ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-105" 
-                          : "border border-gray-200 dark:border-slate-700 hover:border-accent/50"
-                      }`}
-                      style={{
-                        backgroundImage: wp.url ? `url(${wp.url})` : "none",
-                        backgroundColor: !wp.url ? "#0f172a" : "transparent",
-                      }}
-                    >
-                      {!wp.url && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/50">
-                          Default
-                        </span>
-                      )}
-                      {/* Checkmark jab selected ho */}
-                      {chatWallpaper === wp.url && (
-                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-accent rounded-full border border-white flex items-center justify-center">
-                          <span className="text-[8px] text-white">✓</span>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+
+                {/* ── HORIZONTAL SCROLLABLE WALLPAPER GALLERY ── */}
+                {/* Added customized WebKit & Firefox scrollbar utility classes to match the modal background */}
+                <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {WALLPAPERS.map((wp) => {
+                    const isSelected = chatWallpaper === wp.url;
+                    return (
+                      <button
+                        key={wp.id}
+                        onClick={() => setChatWallpaper(wp.url)}
+                        className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${
+                          isSelected
+                            ? "border-[3px] border-[#a855f7] scale-95"
+                            : "border border-gray-800 hover:border-gray-700"
+                        }`}
+                        style={{
+                          backgroundImage: wp.url ? `url(${wp.url})` : "none",
+                          backgroundColor: !wp.url ? "#0f172a" : "transparent",
+                        }}
+                      >
+                        {!wp.url && (
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-400">
+                            Default
+                          </span>
+                        )}
+
+                        {/* Purple Circular Checkmark Badge */}
+                        {isSelected && (
+                          <div className="absolute bottom-1.5 right-1.5 w-[22px] h-[22px] bg-[#a855f7] rounded-full flex items-center justify-center shadow-md">
+                            <span className="text-white text-[11px] font-bold">
+                              ✓
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
