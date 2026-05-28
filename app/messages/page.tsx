@@ -15,6 +15,10 @@ import {
   Smile,
   MoreVertical,
   ArrowLeft,
+  Pencil,
+  Trash2,
+  X,
+  Check
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -47,10 +51,12 @@ function ChatInterface() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 🔥 Edit / Delete States 🔥
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+
   // 🔥 Green Dot Track karne ke liye state
-  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
-    {},
-  );
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 🔥 Chat Settings Modal States
@@ -102,12 +108,10 @@ function ChatInterface() {
   useEffect(() => {
     if (currentUser) {
       if (settingOnline) {
-        // Agar switch ON hai, toh sabko batao main online hu
-        socket.connect(); // In case it was disconnected
+        socket.connect(); 
         socket.emit("add_user", currentUser._id || currentUser.id);
       } else {
-        // 🔥 JAISE HI SWITCH OFF HOGA, TUM GAYAB HO JAOGE 🔥
-        socket.disconnect(); // Socket connection kaat do, tum offline dikhoge
+        socket.disconnect(); 
       }
     }
 
@@ -190,12 +194,11 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-  // 6. 🔥 Real-time incoming messages (SORTING, GREEN DOT & MUTE LOGIC) 🔥
+  // 6. 🔥 Real-time incoming messages, Edits, Deletes 🔥
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
 
-      // Agar active chat open hai aur wahi se message aaya hai
       if (
         activeChat &&
         (data.sender === activeChat._id ||
@@ -207,19 +210,14 @@ function ChatInterface() {
           return [...prev, data];
         });
       } else {
-        // Agar kisi aur ka message aaya hai, toh use Unread mark karo (Green Dot lagao)
         if (data.sender !== myId) {
           setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
 
-          // 🔥 MUTE BUTTON LOGIC (SOUND PLAY KAREGA AGAR MUTE OFF HAI) 🔥
           if (!settingMute) {
             try {
-              // Ye ek safe online URL hai ek choti si notification 'Pop' sound ke liye
               const audio = new Audio(
                 "https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3",
               );
-
-              // Browser kabhi-kabhi sound block kar deta hai bina user interaction ke, isliye catch lagaya hai
               audio
                 .play()
                 .catch((err) => console.log("Browser blocked auto-play"));
@@ -230,7 +228,6 @@ function ChatInterface() {
         }
       }
 
-      // Jisne message bheja hai usko Sidebar list mein NO. 1 par le aao
       setChatUsers((prevUsers) => {
         const targetUserId = data.sender === myId ? data.receiver : data.sender;
         const existingIndex = prevUsers.findIndex(
@@ -241,7 +238,7 @@ function ChatInterface() {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
           newUsers.splice(existingIndex, 1);
-          return [userToMove, ...newUsers]; // User top par push ho gaya
+          return [userToMove, ...newUsers];
         }
         return prevUsers;
       });
@@ -249,8 +246,24 @@ function ChatInterface() {
 
     socket.on("receive_message", handleReceiveMessage);
 
+    // 🔥 Listen for Edits
+    socket.on("message_edited", (data: { _id: string; text: string }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === data._id ? { ...msg, text: data.text } : msg
+        )
+      );
+    });
+
+    // 🔥 Listen for Deletes
+    socket.on("message_deleted", (data: { _id: string }) => {
+      setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
+    });
+
     return () => {
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("message_edited");
+      socket.off("message_deleted");
     };
   }, [activeChat, currentUser, settingMute]);
 
@@ -259,7 +272,7 @@ function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 🔥 Handlers for File and Emoji 🔥
+  // Handlers for File and Emoji
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -270,50 +283,44 @@ function ChatInterface() {
     setNewMessage((prev) => prev + emojiObject.emoji);
   };
 
-  // Send Message
+  // 🔥 SEND MESSAGE
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !selectedFile) || !activeChat) return;
 
     const msgId = Date.now().toString();
 
-    // 1. Create a temporary local URL so YOU can see the image immediately
     let localImageUrl = "";
     if (selectedFile) {
       localImageUrl = URL.createObjectURL(selectedFile);
     }
 
-    // Temporary message for your own screen (Notice we removed the [Attachment] text fallback here)
     const tempMsg = {
       _id: msgId,
       sender: currentUser?._id || currentUser?.id,
       receiver: activeChat._id,
       text: newMessage,
-      image: localImageUrl, // Add the image field
+      image: localImageUrl, 
       createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, tempMsg]);
 
-    // Clear inputs immediately for a snappy UI
     const textToSend = newMessage;
     const fileToSend = selectedFile;
     setNewMessage("");
     setSelectedFile(null);
     setShowEmojiPicker(false);
 
-    // Move user to top of sidebar
     setChatUsers((prev) => {
       const otherUsers = prev.filter((u) => u._id !== activeChat._id);
       return [activeChat, ...otherUsers];
     });
 
-    // 2. Prepare FormData to send the actual file to the backend
     const formData = new FormData();
     if (textToSend) formData.append("text", textToSend);
     if (fileToSend) formData.append("image", fileToSend);
 
     try {
-      // 3. Send file to backend
       const res = await axios.post(
         `${API}/api/messages/${activeChat._id}`,
         formData,
@@ -326,13 +333,55 @@ function ChatInterface() {
       );
 
       const savedMessage = res.data;
-
-      // 4. Emit the REAL message (with the permanent Cloudinary URL) to the other person via socket
       socket.emit("send_message", savedMessage);
     } catch (err) {
       console.error("Message save failed", err);
-      // Remove the temporary message if the upload fails
       setMessages((prev) => prev.filter((m) => m._id !== msgId));
+    }
+  };
+
+  // 🔥 DELETE MESSAGE
+  const handleDeleteMessage = async (msgId: string) => {
+    // Optimistic update
+    setMessages((prev) => prev.filter((m) => m._id !== msgId));
+    
+    // Emit to other user
+    socket.emit("delete_message", { _id: msgId, receiver: activeChat._id });
+
+    try {
+      await axios.delete(`${API}/api/messages/${msgId}`, {
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      console.error("Failed to delete message", err);
+    }
+  };
+
+  // 🔥 SUBMIT EDIT
+  const submitEdit = async (msgId: string) => {
+    if (!editText.trim()) return;
+
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((msg) => (msg._id === msgId ? { ...msg, text: editText } : msg))
+    );
+    setEditingMessageId(null);
+
+    // Emit to other user
+    socket.emit("edit_message", {
+      _id: msgId,
+      text: editText,
+      receiver: activeChat._id,
+    });
+
+    try {
+      await axios.put(
+        `${API}/api/messages/${msgId}`,
+        { text: editText },
+        { headers: getAuthHeaders() }
+      );
+    } catch (err) {
+      console.error("Failed to edit message", err);
     }
   };
 
@@ -359,7 +408,6 @@ function ChatInterface() {
               </p>
             </div>
 
-            {/* 🔥 FUNCTIONAL THREE-DOT MENU 🔥 */}
             <div className="relative">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -371,20 +419,16 @@ function ChatInterface() {
                 />
               </button>
 
-              {/* Dropdown Box */}
               {isMenuOpen && (
                 <>
-                  {/* Invisible Overlay: Menu ke bahar click karne par band karne ke liye */}
                   <div
                     className="fixed inset-0 z-40"
                     onClick={() => setIsMenuOpen(false)}
                   ></div>
-
-                  {/* Menu Items */}
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in duration-200">
                     <button
                       onClick={() => {
-                        setUnreadChats({}); // Saare green dots clear kar dega!
+                        setUnreadChats({}); 
                         setIsMenuOpen(false);
                       }}
                       className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
@@ -394,7 +438,7 @@ function ChatInterface() {
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        setIsSettingsOpen(true); // 🔥 Isse Settings Box khulega
+                        setIsSettingsOpen(true); 
                       }}
                       className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
                     >
@@ -406,7 +450,6 @@ function ChatInterface() {
             </div>
           </div>
 
-          {/* Search Box */}
           <div className="p-5 border-b border-gray-200/80 dark:border-slate-800/80 flex-shrink-0 transition-colors">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 flex items-center gap-3 px-4 py-3 shadow-sm transition-colors focus-within:ring-2 ring-accent">
               <Search
@@ -434,7 +477,6 @@ function ChatInterface() {
                     key={user._id}
                     onClick={() => {
                       setActiveChat(user);
-                      // 🔥 JAISI HI CHAT KHOLI, GREEN DOT GAYAB 🔥
                       setUnreadChats((prev) => ({
                         ...prev,
                         [user._id]: false,
@@ -468,7 +510,6 @@ function ChatInterface() {
                       <p
                         className={`text-[11px] font-medium mt-0.5 truncate ${isActive ? "text-gray-600 dark:text-white/80" : "text-gray-400 dark:text-slate-500"}`}
                       >
-                        {/* 🔥 TEXT CHANGE KAREGA AGAR NAYA MESSAGE HAI 🔥 */}
                         {unreadChats[user._id] ? (
                           <span className="text-green-500 font-bold">
                             New message received
@@ -479,7 +520,6 @@ function ChatInterface() {
                       </p>
                     </div>
 
-                    {/* 🔥 CHAMAKTA HUA GREEN DOT 🔥 */}
                     {unreadChats[user._id] && (
                       <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                     )}
@@ -501,14 +541,12 @@ function ChatInterface() {
             backgroundImage: chatWallpaper ? `url(${chatWallpaper})` : "none",
           }}
         >
-          {/* 🔥 Dark Overlay: Taaki text messages humesha clear dikhein 🔥 */}
           {chatWallpaper && (
             <div className="absolute inset-0 bg-slate-900/60 z-0 pointer-events-none transition-opacity duration-300" />
           )}
 
           {activeChat ? (
             <div className="flex flex-col h-full w-full justify-between relative z-10">
-              {/* TOPBAR */}
               <div className="h-20 border-b border-gray-200/80 dark:border-slate-800/80 px-4 md:px-8 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex-shrink-0 z-10 transition-colors">
                 <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
                   <button
@@ -545,9 +583,7 @@ function ChatInterface() {
                     <p
                       className={`${onlineUsers.includes(activeChat._id) ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
                     >
-                      {onlineUsers.includes(activeChat._id)
-                        ? "Online"
-                        : "Offline"}
+                      {onlineUsers.includes(activeChat._id) ? "Online" : "Offline"}
                     </p>
                   </div>
                 </div>
@@ -563,16 +599,39 @@ function ChatInterface() {
                     return (
                       <div
                         key={msg._id || index}
-                        className={`flex w-full ${isMe ? "justify-end" : "justify-start"}`}
+                        className={`flex w-full group ${isMe ? "justify-end" : "justify-start"}`}
                       >
+                        {/* 🔥 DELETE & EDIT BUTTONS (Shown on hover) */}
+                        {isMe && editingMessageId !== msg._id && (
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+                            {msg.text && (
+                              <button
+                                onClick={() => {
+                                  setEditingMessageId(msg._id);
+                                  setEditText(msg.text);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-lg transition"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteMessage(msg._id)}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+
                         <div
-                          className={`max-w-[75%] px-5 py-3.5 shadow-sm transition-colors ${
+                          className={`max-w-[75%] px-5 py-3.5 shadow-sm transition-colors relative ${
                             isMe
                               ? "bg-accent/10 text-gray-800 dark:bg-accent/20 dark:text-white border border-accent/20 rounded-[20px] rounded-tr-sm"
                               : "bg-white dark:bg-slate-800/80 text-gray-700 dark:text-white/90 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm"
                           }`}
                         >
-                          {/* 🔥 Render the Image if it exists 🔥 */}
+                          {/* Image rendering */}
                           {msg.image && (
                             <img
                               src={msg.image}
@@ -582,11 +641,38 @@ function ChatInterface() {
                             />
                           )}
 
-                          {/* Render the Text if it exists */}
-                          {msg.text && (
-                            <p className="leading-relaxed text-[15px]">
-                              {msg.text}
-                            </p>
+                          {/* Editable Text Field OR Standard Text */}
+                          {editingMessageId === msg._id ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <input
+                                type="text"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                onKeyDown={(e) =>
+                                  e.key === "Enter" && submitEdit(msg._id)
+                                }
+                                autoFocus
+                                className="bg-white dark:bg-slate-900 border border-accent/30 rounded-lg px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-accent w-full text-gray-900 dark:text-white"
+                              />
+                              <button
+                                onClick={() => submitEdit(msg._id)}
+                                className="text-green-500 hover:text-green-600 transition"
+                              >
+                                <Check size={18} />
+                              </button>
+                              <button
+                                onClick={() => setEditingMessageId(null)}
+                                className="text-red-500 hover:text-red-600 transition"
+                              >
+                                <X size={18} />
+                              </button>
+                            </div>
+                          ) : (
+                            msg.text && (
+                              <p className="leading-relaxed text-[15px]">
+                                {msg.text}
+                              </p>
+                            )
                           )}
 
                           <p
@@ -615,10 +701,9 @@ function ChatInterface() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* CHAT INPUT LAYER (UPDATED) */}
+              {/* CHAT INPUT LAYER */}
               <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
                 <div className="max-w-4xl mx-auto relative">
-                  {/* Emoji Picker Popup */}
                   {showEmojiPicker && (
                     <div className="absolute bottom-[70px] right-0 z-50 shadow-2xl rounded-lg">
                       <EmojiPicker
@@ -628,7 +713,6 @@ function ChatInterface() {
                     </div>
                   )}
 
-                  {/* Selected File Preview (Shows above the input box) */}
                   {selectedFile && (
                     <div className="mb-2 p-2 bg-gray-100 dark:bg-slate-800 rounded-lg flex items-center justify-between text-sm max-w-sm border border-gray-200 dark:border-slate-700">
                       <span className="truncate text-gray-700 dark:text-gray-300 font-medium">
@@ -643,17 +727,13 @@ function ChatInterface() {
                     </div>
                   )}
 
-                  {/* The Input Bar */}
                   <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                    {/* Hidden File Input */}
                     <input
                       type="file"
                       className="hidden"
                       ref={fileInputRef}
                       onChange={handleFileChange}
                     />
-
-                    {/* Attachment Button */}
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700"
@@ -672,7 +752,6 @@ function ChatInterface() {
                       className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 text-[15px] px-2"
                     />
 
-                    {/* Emoji Button */}
                     <button
                       onClick={() => setShowEmojiPicker((prev) => !prev)}
                       className="w-10 h-10 rounded-[14px] transition flex items-center justify-center text-gray-400 hover:text-accent dark:hover:text-accent"
@@ -680,7 +759,6 @@ function ChatInterface() {
                       <Smile size={20} />
                     </button>
 
-                    {/* Send Button */}
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() && !selectedFile}
@@ -697,7 +775,6 @@ function ChatInterface() {
               </div>
             </div>
           ) : (
-            // BLANK CHAT STATE
             <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-transparent w-full h-full transition-colors relative z-10">
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
@@ -720,22 +797,18 @@ function ChatInterface() {
         </div>
       </div>
 
-      {/* ── 🔥 CHAT SETTINGS MODAL 🔥 ── */}
+      {/* ── CHAT SETTINGS MODAL ── */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Blur Background Overlay */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsSettingsOpen(false)}
           ></div>
-
-          {/* Modal Box */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="relative w-full max-w-sm bg-[#0b141a] dark:bg-slate-900 rounded-[24px] shadow-2xl overflow-hidden border border-gray-800"
           >
-            {/* Header */}
             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between bg-[#0b141a]">
               <h3 className="text-lg font-black text-white">Chat Settings</h3>
               <button
@@ -745,10 +818,7 @@ function ChatInterface() {
                 ✕
               </button>
             </div>
-
-            {/* Options Body */}
             <div className="p-6 space-y-6">
-              {/* Option 1: Mute Notifications */}
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-white">
@@ -767,8 +837,6 @@ function ChatInterface() {
                   ></div>
                 </button>
               </div>
-
-              {/* Option 2: Show Online Status */}
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-white">
@@ -787,8 +855,6 @@ function ChatInterface() {
                   ></div>
                 </button>
               </div>
-
-              {/* Option 3: Chat Wallpaper Gallery */}
               <div className="pt-4 border-t border-gray-800">
                 <div>
                   <h4 className="text-sm font-bold text-white">
@@ -798,8 +864,6 @@ function ChatInterface() {
                     Customize your background
                   </p>
                 </div>
-
-                {/* ── HORIZONTAL SCROLLABLE WALLPAPER GALLERY ── */}
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {WALLPAPERS.map((wp) => {
                     const isSelected = chatWallpaper === wp.url;
@@ -807,11 +871,7 @@ function ChatInterface() {
                       <button
                         key={wp.id}
                         onClick={() => setChatWallpaper(wp.url)}
-                        className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${
-                          isSelected
-                            ? "border-[3px] border-[#a855f7] scale-95"
-                            : "border border-gray-800 hover:border-gray-700"
-                        }`}
+                        className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${isSelected ? "border-[3px] border-[#a855f7] scale-95" : "border border-gray-800 hover:border-gray-700"}`}
                         style={{
                           backgroundImage: wp.url ? `url(${wp.url})` : "none",
                           backgroundColor: !wp.url ? "#0f172a" : "transparent",
@@ -822,8 +882,6 @@ function ChatInterface() {
                             Default
                           </span>
                         )}
-
-                        {/* Purple Circular Checkmark Badge */}
                         {isSelected && (
                           <div className="absolute bottom-1.5 right-1.5 w-[22px] h-[22px] bg-[#a855f7] rounded-full flex items-center justify-center shadow-md">
                             <span className="text-white text-[11px] font-bold">
@@ -840,8 +898,6 @@ function ChatInterface() {
           </motion.div>
         </div>
       )}
-
-      {/* ── FOOTER BAR ── */}
       <BottomNav />
     </div>
   );
