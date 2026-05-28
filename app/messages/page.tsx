@@ -60,18 +60,27 @@ function ChatInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  // 2. Socket Connection
+  // 2. Socket Connection (AB TOGGLE KE SATH CONNECTED HAI)
   useEffect(() => {
     if (currentUser) {
-      socket.emit("add_user", currentUser._id || currentUser.id);
+      if (settingOnline) {
+        // Agar switch ON hai, toh sabko batao main online hu
+        socket.connect(); // In case it was disconnected
+        socket.emit("add_user", currentUser._id || currentUser.id);
+      } else {
+        // 🔥 JAISE HI SWITCH OFF HOGA, TUM GAYAB HO JAOGE 🔥
+        socket.disconnect(); // Socket connection kaat do, tum offline dikhoge
+      }
     }
+
     socket.on("get_online_users", (usersArray) => {
       setOnlineUsers(usersArray);
     });
+
     return () => {
       socket.off("get_online_users");
     };
-  }, [currentUser]);
+  }, [currentUser, settingOnline]); // 👈 yahan settingOnline add kiya
 
   // 3. Fetch Sidebar Users
   useEffect(() => {
