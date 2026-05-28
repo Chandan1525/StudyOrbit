@@ -1,5 +1,5 @@
-import Message from '../models/Message.js'; // Apna private message model check kar lena
-import { encryptText, decryptText } from '../utils/cryptoHelper.js'; // 🔥 Encryption Import
+import Message from '../models/Message.js';
+import { encryptText, decryptText } from '../utils/cryptoHelper.js';
 import Notification from "../models/Notification.js";
 
 // 1. Private Messages Fetch karna
@@ -15,11 +15,12 @@ export const getMessages = async (req, res) => {
       ]
     }).sort({ createdAt: 1 });
 
-    // 🔥 DECRYPT LOGIC: Frontend par bhejne se pehle wapas padhne layak banao
+    // 🔥 DECRYPT LOGIC
     const decryptedMessages = messages.map((msg) => {
       const doc = msg.toObject();
-      if (doc.text) {
-        doc.text = decryptText(doc.text); // Chhupe code ko wapas text mein badlo
+      // Only decrypt if there is actually text
+      if (doc.text && doc.text.trim() !== "") {
+        doc.text = decryptText(doc.text); 
       }
       return doc;
     });
@@ -37,31 +38,41 @@ export const sendMessage = async (req, res) => {
     const { text } = req.body;
     const senderId = req.user._id || req.user.id;
 
-    // 🔥 ENCRYPT LOGIC: Database mein save hone se pehle encrypt kar do
-    const encryptedText = encryptText(text);
+    // 🔥 If a file was uploaded, Multer attaches it to req.file. 
+    // Cloudinary automatically returns the live URL in req.file.path
+    const imageUrl = req.file ? req.file.path : "";
+
+    // 🔥 ENCRYPT LOGIC: Only encrypt if text was actually sent
+    let encryptedText = "";
+    if (text && text.trim() !== "") {
+      encryptedText = encryptText(text);
+    }
 
     const newMessage = await Message.create({
       sender: senderId,
       receiver: receiverId,
-      text: encryptedText, // 👈 Yahan Encrypted string jayegi DB mein
+      text: encryptedText, 
+      image: imageUrl, // 👈 Save the Cloudinary URL to DB
     });
 
-    // 🔥 CHAT NOTIFICATION TRIGGER (NAYA CODE) 🔥
-    // Check karte hain ki khud ko hi message na bhej rahe hon
+    // 🔥 CHAT NOTIFICATION TRIGGER
     if (receiverId.toString() !== senderId.toString()) {
       await Notification.create({
-        recipient: receiverId, // Jisko message bheja
-        sender: senderId,      // Jisne message bheja
-        type: "message"        // Notification ka type taaki UI usko chat icon de
+        recipient: receiverId, 
+        sender: senderId,      
+        type: "message"        
       });
     }
 
-    // Frontend par API response mein turant raw text bhejte hain taaki UI fast rahe
+    // Frontend par API response mein turant raw text bhejte hain
     const responseData = newMessage.toObject();
-    responseData.text = text; 
+    if (text) {
+      responseData.text = text; 
+    }
 
     res.status(201).json(responseData);
   } catch (error) {
+    console.error("SendMessage Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
