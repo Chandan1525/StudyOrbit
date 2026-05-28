@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { io } from "socket.io-client";
 import BottomNav from "@/components/BottomNav";
+import EmojiPicker, { Theme } from "emoji-picker-react";
 
 import {
   Search,
@@ -40,6 +41,11 @@ function ChatInterface() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  // 🔥 Emoji & Attachment States 🔥
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 🔥 Green Dot Track karne ke liye state
   const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
@@ -253,21 +259,42 @@ function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // 🔥 Handlers for File and Emoji 🔥
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const onEmojiClick = (emojiObject: any) => {
+    setNewMessage((prev) => prev + emojiObject.emoji);
+  };
+
   // Send Message
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeChat) return;
+    if ((!newMessage.trim() && !selectedFile) || !activeChat) return;
 
     const msgId = Date.now().toString();
+
+    // Note: If you want to actually upload files to a backend, you'll need to use FormData here.
+    // For now, it appends a placeholder string so the UI registers it was sent.
+    const messageText =
+      newMessage || (selectedFile ? `[Attachment: ${selectedFile.name}]` : "");
+
     const tempMsg = {
       _id: msgId,
       sender: currentUser?._id || currentUser?.id,
       receiver: activeChat._id,
-      text: newMessage,
+      text: messageText,
       createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, tempMsg]);
+
+    // Clear inputs after sending
     setNewMessage("");
+    setSelectedFile(null);
+    setShowEmojiPicker(false);
 
     setChatUsers((prev) => {
       const otherUsers = prev.filter((u) => u._id !== activeChat._id);
@@ -553,34 +580,84 @@ function ChatInterface() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* CHAT INPUT */}
+              {/* CHAT INPUT LAYER (UPDATED) */}
               <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
-                <div className="max-w-4xl mx-auto flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                  <button className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700">
-                    <Paperclip size={18} />
-                  </button>
-                  <input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    type="text"
-                    placeholder="Type a message..."
-                    className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 text-[15px] px-2"
-                  />
-                  <button className="w-10 h-10 rounded-[14px] transition flex items-center justify-center text-gray-400 hover:text-accent dark:hover:text-accent">
-                    <Smile size={20} />
-                  </button>
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                    className="w-10 h-10 rounded-[14px] bg-accent shadow-md shadow-accent/20 flex items-center justify-center flex-shrink-0 hover:opacity-90 transition disabled:opacity-50"
-                  >
-                    <Send
-                      size={16}
-                      className="text-white"
-                      style={{ marginLeft: "2px", marginBottom: "2px" }}
+                <div className="max-w-4xl mx-auto relative">
+                  {/* Emoji Picker Popup */}
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-[70px] right-0 z-50 shadow-2xl rounded-lg">
+                      <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        theme={Theme.AUTO}
+                      />
+                    </div>
+                  )}
+
+                  {/* Selected File Preview (Shows above the input box) */}
+                  {selectedFile && (
+                    <div className="mb-2 p-2 bg-gray-100 dark:bg-slate-800 rounded-lg flex items-center justify-between text-sm max-w-sm border border-gray-200 dark:border-slate-700">
+                      <span className="truncate text-gray-700 dark:text-gray-300 font-medium">
+                        📎 {selectedFile.name}
+                      </span>
+                      <button
+                        onClick={() => setSelectedFile(null)}
+                        className="text-red-500 hover:text-red-700 ml-4 font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* The Input Bar */}
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
+                    {/* Hidden File Input */}
+                    <input
+                      type="file"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
                     />
-                  </button>
+
+                    {/* Attachment Button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700"
+                    >
+                      <Paperclip size={18} />
+                    </button>
+
+                    <input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handleSendMessage()
+                      }
+                      type="text"
+                      placeholder="Type a message..."
+                      className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 text-[15px] px-2"
+                    />
+
+                    {/* Emoji Button */}
+                    <button
+                      onClick={() => setShowEmojiPicker((prev) => !prev)}
+                      className="w-10 h-10 rounded-[14px] transition flex items-center justify-center text-gray-400 hover:text-accent dark:hover:text-accent"
+                    >
+                      <Smile size={20} />
+                    </button>
+
+                    {/* Send Button */}
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() && !selectedFile}
+                      className="w-10 h-10 rounded-[14px] bg-accent shadow-md shadow-accent/20 flex items-center justify-center flex-shrink-0 hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      <Send
+                        size={16}
+                        className="text-white"
+                        style={{ marginLeft: "2px", marginBottom: "2px" }}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -677,7 +754,6 @@ function ChatInterface() {
               </div>
 
               {/* Option 3: Chat Wallpaper Gallery */}
-              {/* Option 3: Chat Wallpaper Gallery */}
               <div className="pt-4 border-t border-gray-800">
                 <div>
                   <h4 className="text-sm font-bold text-white">
@@ -689,7 +765,6 @@ function ChatInterface() {
                 </div>
 
                 {/* ── HORIZONTAL SCROLLABLE WALLPAPER GALLERY ── */}
-                {/* Added customized WebKit & Firefox scrollbar utility classes to match the modal background */}
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {WALLPAPERS.map((wp) => {
                     const isSelected = chatWallpaper === wp.url;
