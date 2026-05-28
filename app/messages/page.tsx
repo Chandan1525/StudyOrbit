@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { io } from "socket.io-client";
-import BottomNav from "@/components/BottomNav"; 
+import BottomNav from "@/components/BottomNav";
 
 import {
   Search,
@@ -40,16 +40,18 @@ function ChatInterface() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  
+
   // 🔥 Green Dot Track karne ke liye state
-  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
+    {},
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 🔥 Chat Settings Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingMute, setSettingMute] = useState(false);
   const [settingOnline, setSettingOnline] = useState(true);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 1. Get Current User
@@ -71,7 +73,7 @@ function ChatInterface() {
     };
   }, [currentUser]);
 
-  // 3. Fetch Sidebar Users 
+  // 3. Fetch Sidebar Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -167,8 +169,10 @@ function ChatInterface() {
       // Jisne message bheja hai usko Sidebar list mein NO. 1 par le aao
       setChatUsers((prevUsers) => {
         const targetUserId = data.sender === myId ? data.receiver : data.sender;
-        const existingIndex = prevUsers.findIndex((u) => u._id === targetUserId || u.id === targetUserId);
-        
+        const existingIndex = prevUsers.findIndex(
+          (u) => u._id === targetUserId || u.id === targetUserId,
+        );
+
         if (existingIndex > -1) {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
@@ -233,7 +237,7 @@ function ChatInterface() {
   );
 
   return (
-    <div className="h-screen w-full bg-transparent dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden flex flex-col justify-between transition-colors duration-300">
+    <div className="h-[100dvh] w-full bg-transparent dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden flex flex-col justify-between transition-colors duration-300">
       <div className="flex flex-1 overflow-hidden w-full relative">
         {/* ── SIDEBAR ── */}
         <div
@@ -248,10 +252,10 @@ function ChatInterface() {
                 Connect with developers
               </p>
             </div>
-            
+
             {/* 🔥 FUNCTIONAL THREE-DOT MENU 🔥 */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className={`w-9 h-9 rounded-[12px] border flex items-center justify-center transition shadow-sm ${isMenuOpen ? "bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600" : "bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:shadow-md"}`}
               >
@@ -265,11 +269,11 @@ function ChatInterface() {
               {isMenuOpen && (
                 <>
                   {/* Invisible Overlay: Menu ke bahar click karne par band karne ke liye */}
-                  <div 
-                    className="fixed inset-0 z-40" 
+                  <div
+                    className="fixed inset-0 z-40"
                     onClick={() => setIsMenuOpen(false)}
                   ></div>
-                  
+
                   {/* Menu Items */}
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in duration-200">
                     <button
@@ -325,7 +329,10 @@ function ChatInterface() {
                     onClick={() => {
                       setActiveChat(user);
                       // 🔥 JAISI HI CHAT KHOLI, GREEN DOT GAYAB 🔥
-                      setUnreadChats((prev) => ({ ...prev, [user._id]: false }));
+                      setUnreadChats((prev) => ({
+                        ...prev,
+                        [user._id]: false,
+                      }));
                     }}
                     className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${
                       isActive
@@ -357,13 +364,15 @@ function ChatInterface() {
                       >
                         {/* 🔥 TEXT CHANGE KAREGA AGAR NAYA MESSAGE HAI 🔥 */}
                         {unreadChats[user._id] ? (
-                          <span className="text-green-500 font-bold">New message received</span>
+                          <span className="text-green-500 font-bold">
+                            New message received
+                          </span>
                         ) : (
                           "Tap to view chat"
                         )}
                       </p>
                     </div>
-                    
+
                     {/* 🔥 CHAMAKTA HUA GREEN DOT 🔥 */}
                     {unreadChats[user._id] && (
                       <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
@@ -479,7 +488,8 @@ function ChatInterface() {
               </div>
 
               {/* CHAT INPUT */}
-              <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[72px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
+              {/* CHAT INPUT */}
+              <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
                 <div className="max-w-4xl mx-auto flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
                   <button className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700">
                     <Paperclip size={18} />
@@ -537,21 +547,23 @@ function ChatInterface() {
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           {/* Blur Background Overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsSettingsOpen(false)}
           ></div>
-          
+
           {/* Modal Box */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-800"
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50">
-              <h3 className="text-lg font-black text-gray-900 dark:text-white">Chat Settings</h3>
-              <button 
+              <h3 className="text-lg font-black text-gray-900 dark:text-white">
+                Chat Settings
+              </h3>
+              <button
                 onClick={() => setIsSettingsOpen(false)}
                 className="w-8 h-8 rounded-full bg-gray-200/50 dark:bg-slate-800 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-white transition"
               >
@@ -561,46 +573,60 @@ function ChatInterface() {
 
             {/* Options Body */}
             <div className="p-6 space-y-6">
-              
               {/* Option 1: Mute Notifications */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Mute Notifications</h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Pause chat sounds and alerts</p>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Mute Notifications
+                  </h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                    Pause chat sounds and alerts
+                  </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setSettingMute(!settingMute)}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? 'bg-accent' : 'bg-gray-200 dark:bg-slate-700'}`}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? "bg-accent" : "bg-gray-200 dark:bg-slate-700"}`}
                 >
-                  <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingMute ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingMute ? "translate-x-6" : "translate-x-0"}`}
+                  ></div>
                 </button>
               </div>
 
               {/* Option 2: Show Online Status */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Show Online Status</h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Let others see when you're active</p>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Show Online Status
+                  </h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                    Let others see when you're active
+                  </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setSettingOnline(!settingOnline)}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? 'bg-accent' : 'bg-gray-200 dark:bg-slate-700'}`}
+                  className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? "bg-accent" : "bg-gray-200 dark:bg-slate-700"}`}
                 >
-                  <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingOnline ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${settingOnline ? "translate-x-6" : "translate-x-0"}`}
+                  ></div>
                 </button>
               </div>
 
               {/* Option 3: Chat Theme (Dummy Button) */}
               <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-800">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Chat Wallpaper</h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">Customize your background</p>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Chat Wallpaper
+                  </h4>
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                    Customize your background
+                  </p>
                 </div>
                 <button className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-[11px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition">
                   Change
                 </button>
               </div>
-
             </div>
           </motion.div>
         </div>
