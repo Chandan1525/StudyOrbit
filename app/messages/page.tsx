@@ -6,13 +6,9 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import BottomNav from "@/components/BottomNav"; 
 
-
 import {
-  Home,
   Search,
-  Users,
   MessageCircle,
-  User,
   Send,
   Paperclip,
   Smile,
@@ -36,7 +32,6 @@ function ChatInterface() {
   const searchParams = useSearchParams();
   const preSelectedUserId = searchParams.get("chat"); // URL se ID nikal li
 
-  const [activeTab, setActiveTab] = useState("chats");
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [chatUsers, setChatUsers] = useState<any[]>([]);
@@ -45,7 +40,10 @@ function ChatInterface() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // 🔥 Green Dot Track karne ke liye state
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 1. Get Current User
@@ -62,22 +60,19 @@ function ChatInterface() {
     socket.on("get_online_users", (usersArray) => {
       setOnlineUsers(usersArray);
     });
-    // 🔥 FIX: Added curly braces to return void
     return () => {
       socket.off("get_online_users");
     };
   }, [currentUser]);
 
-  // 3. Fetch Sidebar Users (🔥 API ROUTE FIXED HERE 🔥)
+  // 3. Fetch Sidebar Users 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Yahan par humne route ko '/api/users' se '/api/users/sidebar' kar diya hai
         const res = await axios.get(`${API}/api/users/sidebar`, {
           headers: getAuthHeaders(),
         });
 
-        // FIX: Check if data is inside 'users' key (res.data.users) or direct array
         const userList = res.data.users || res.data || [];
 
         const otherUsers = userList.filter(
@@ -91,7 +86,7 @@ function ChatInterface() {
     if (currentUser) fetchUsers();
   }, [currentUser]);
 
-  // 4. 🔥 MAGIC: AUTO-SELECT CHAT IF URL HAS '?chat=ID' 🔥
+  // 4. AUTO-SELECT CHAT IF URL HAS '?chat=ID'
   useEffect(() => {
     if (!preSelectedUserId) return;
 
@@ -140,28 +135,48 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-  // 6. Real-time incoming messages (UPDATED FOR BADGE)
+  // 6. 🔥 Real-time incoming messages (SORTING & GREEN DOT ADDED) 🔥
   useEffect(() => {
-    socket.on("receive_message", (data) => {
+    const handleReceiveMessage = (data: any) => {
+      const myId = currentUser?._id || currentUser?.id;
+
       // Agar active chat open hai aur wahi se message aaya hai
       if (
         activeChat &&
         (data.sender === activeChat._id ||
           data.receiver === activeChat._id ||
-          data.sender === currentUser?._id)
+          data.sender === myId)
       ) {
         setMessages((prev) => {
           if (prev.some((m) => m._id === data._id)) return prev;
           return [...prev, data];
         });
       } else {
-        // Agar active chat band hai ya kisi aur ka message aaya hai, toh notification badhao
-        setUnreadCount((prev) => prev + 1);
+        // Agar kisi aur ka message aaya hai, toh use Unread mark karo (Green Dot lagao)
+        if (data.sender !== myId) {
+          setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
+        }
       }
-    });
+
+      // Jisne message bheja hai usko Sidebar list mein NO. 1 par le aao
+      setChatUsers((prevUsers) => {
+        const targetUserId = data.sender === myId ? data.receiver : data.sender;
+        const existingIndex = prevUsers.findIndex((u) => u._id === targetUserId || u.id === targetUserId);
+        
+        if (existingIndex > -1) {
+          const userToMove = prevUsers[existingIndex];
+          const newUsers = [...prevUsers];
+          newUsers.splice(existingIndex, 1);
+          return [userToMove, ...newUsers]; // User top par push ho gaya
+        }
+        return prevUsers;
+      });
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
 
     return () => {
-      socket.off("receive_message");
+      socket.off("receive_message", handleReceiveMessage);
     };
   }, [activeChat, currentUser]);
 
@@ -205,20 +220,6 @@ function ChatInterface() {
     }
   };
 
-  const NAV = [
-    { id: "home", icon: Home, label: "Home" },
-    { id: "search", icon: Search, label: "Search" },
-    { id: "community", icon: Users, label: "Community" },
-    // 🔥 Yahan humne hardcoded 5 hata kar condition laga di
-    {
-      id: "chats",
-      icon: MessageCircle,
-      label: "Chats",
-      badge: unreadCount > 0 ? unreadCount : null,
-    },
-    { id: "profile", icon: User, label: "Profile" },
-  ];
-
   const filteredUsers = chatUsers.filter(
     (u) =>
       u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -226,10 +227,9 @@ function ChatInterface() {
   );
 
   return (
-    // 🔥 Main Container Transition & Dark Mode Wrapper (Matches Community)
     <div className="h-screen w-full bg-transparent dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden flex flex-col justify-between transition-colors duration-300">
       <div className="flex flex-1 overflow-hidden w-full relative">
-        {/* ── SIDEBAR (Matches Community style) ── */}
+        {/* ── SIDEBAR ── */}
         <div
           className={`${activeChat ? "hidden md:flex" : "flex w-full"} md:w-[320px] md:max-w-[320px] border-r border-gray-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl flex-col h-full flex-shrink-0 z-20 transition-colors`}
         >
@@ -278,7 +278,8 @@ function ChatInterface() {
                     key={user._id}
                     onClick={() => {
                       setActiveChat(user);
-                      setUnreadCount(0);
+                      // 🔥 JAISI HI CHAT KHOLI, GREEN DOT GAYAB 🔥
+                      setUnreadChats((prev) => ({ ...prev, [user._id]: false }));
                     }}
                     className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${
                       isActive
@@ -308,9 +309,19 @@ function ChatInterface() {
                       <p
                         className={`text-[11px] font-medium mt-0.5 truncate ${isActive ? "text-gray-600 dark:text-white/80" : "text-gray-400 dark:text-slate-500"}`}
                       >
-                        Tap to view chat
+                        {/* 🔥 TEXT CHANGE KAREGA AGAR NAYA MESSAGE HAI 🔥 */}
+                        {unreadChats[user._id] ? (
+                          <span className="text-green-500 font-bold">New message received</span>
+                        ) : (
+                          "Tap to view chat"
+                        )}
                       </p>
                     </div>
+                    
+                    {/* 🔥 CHAMAKTA HUA GREEN DOT 🔥 */}
+                    {unreadChats[user._id] && (
+                      <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                    )}
                   </button>
                 );
               })
@@ -373,7 +384,7 @@ function ChatInterface() {
                 </div>
               </div>
 
-              {/* MESSAGES LAYER (Community pattern implemented) */}
+              {/* MESSAGES LAYER */}
               <div className="flex-1 overflow-y-auto px-4 md:px-8 py-7 space-y-4 custom-scrollbar pb-44">
                 {messages.length > 0 ? (
                   messages.map((msg, index) => {
