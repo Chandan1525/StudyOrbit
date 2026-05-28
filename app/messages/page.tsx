@@ -42,9 +42,7 @@ function ChatInterface() {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   // 🔥 Green Dot Track karne ke liye state
-  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
-    {},
-  );
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 🔥 Chat Settings Modal States
@@ -152,7 +150,7 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-  // 6. 🔥 Real-time incoming messages (SORTING & GREEN DOT ADDED) 🔥
+  // 6. 🔥 Real-time incoming messages (SORTING, GREEN DOT & MUTE LOGIC) 🔥
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
@@ -172,16 +170,27 @@ function ChatInterface() {
         // Agar kisi aur ka message aaya hai, toh use Unread mark karo (Green Dot lagao)
         if (data.sender !== myId) {
           setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
+          
+          // 🔥 MUTE BUTTON LOGIC (SOUND PLAY KAREGA AGAR MUTE OFF HAI) 🔥
+          if (!settingMute) {
+            try {
+              // Ye ek safe online URL hai ek choti si notification 'Pop' sound ke liye
+              const audio = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3");
+              
+              // Browser kabhi-kabhi sound block kar deta hai bina user interaction ke, isliye catch lagaya hai
+              audio.play().catch((err) => console.log("Browser blocked auto-play"));
+            } catch (error) {
+              console.error("Audio error", error);
+            }
+          }
         }
       }
 
       // Jisne message bheja hai usko Sidebar list mein NO. 1 par le aao
       setChatUsers((prevUsers) => {
         const targetUserId = data.sender === myId ? data.receiver : data.sender;
-        const existingIndex = prevUsers.findIndex(
-          (u) => u._id === targetUserId || u.id === targetUserId,
-        );
-
+        const existingIndex = prevUsers.findIndex((u) => u._id === targetUserId || u.id === targetUserId);
+        
         if (existingIndex > -1) {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
@@ -197,7 +206,7 @@ function ChatInterface() {
     return () => {
       socket.off("receive_message", handleReceiveMessage);
     };
-  }, [activeChat, currentUser]);
+  }, [activeChat, currentUser, settingMute]); // 👈 IMPORTANT: Yahan array mein `settingMute` zaroor add karna
 
   // Auto Scroll
   useEffect(() => {
@@ -496,7 +505,6 @@ function ChatInterface() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* CHAT INPUT */}
               {/* CHAT INPUT */}
               <div className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors">
                 <div className="max-w-4xl mx-auto flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
