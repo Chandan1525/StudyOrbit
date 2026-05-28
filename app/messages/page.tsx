@@ -43,6 +43,7 @@ function ChatInterface() {
   
   // 🔥 Green Dot Track karne ke liye state
   const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -233,7 +234,7 @@ function ChatInterface() {
         <div
           className={`${activeChat ? "hidden md:flex" : "flex w-full"} md:w-[320px] md:max-w-[320px] border-r border-gray-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl flex-col h-full flex-shrink-0 z-20 transition-colors`}
         >
-          <div className="h-20 px-6 flex items-center border-b border-gray-200/80 dark:border-slate-800/80 flex-shrink-0 transition-colors justify-between">
+          <div className="h-20 px-6 flex items-center border-b border-gray-200/80 dark:border-slate-800/80 flex-shrink-0 transition-colors justify-between relative">
             <div>
               <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                 Messages
@@ -242,12 +243,52 @@ function ChatInterface() {
                 Connect with developers
               </p>
             </div>
-            <button className="w-9 h-9 rounded-[12px] bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 flex items-center justify-center hover:shadow-sm transition shadow-sm">
-              <MoreVertical
-                size={18}
-                className="text-gray-600 dark:text-white/70"
-              />
-            </button>
+            
+            {/* 🔥 FUNCTIONAL THREE-DOT MENU 🔥 */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className={`w-9 h-9 rounded-[12px] border flex items-center justify-center transition shadow-sm ${isMenuOpen ? "bg-gray-100 dark:bg-slate-700 border-gray-300 dark:border-slate-600" : "bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:shadow-md"}`}
+              >
+                <MoreVertical
+                  size={18}
+                  className="text-gray-600 dark:text-white/70"
+                />
+              </button>
+
+              {/* Dropdown Box */}
+              {isMenuOpen && (
+                <>
+                  {/* Invisible Overlay: Menu ke bahar click karne par band karne ke liye */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsMenuOpen(false)}
+                  ></div>
+                  
+                  {/* Menu Items */}
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in duration-200">
+                    <button
+                      onClick={() => {
+                        setUnreadChats({}); // Saare green dots clear kar dega!
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
+                    >
+                      ✅ Mark all as read
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        // Future me yaha router.push('/settings') laga sakte ho
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
+                    >
+                      ⚙️ Chat Settings
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Search Box */}
