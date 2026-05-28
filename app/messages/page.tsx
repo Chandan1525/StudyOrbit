@@ -69,6 +69,14 @@ function ChatInterface() {
   const [settingOnline, setSettingOnline] = useState(true);
   const [chatWallpaper, setChatWallpaper] = useState<string>("");
 
+  // 🔥 NEW: Load the saved wallpaper when the page refreshes
+  useEffect(() => {
+    const savedWallpaper = localStorage.getItem("chatWallpaper");
+    if (savedWallpaper) {
+      setChatWallpaper(savedWallpaper);
+    }
+  }, []);
+
   const WALLPAPERS = [
     { id: "default", name: "Default", url: "" },
     {
@@ -860,7 +868,10 @@ function ChatInterface() {
                     return (
                       <button
                         key={wp.id}
-                        onClick={() => setChatWallpaper(wp.url)}
+                        onClick={() => {
+                          setChatWallpaper(wp.url); // Updates the screen immediately
+                          localStorage.setItem("chatWallpaper", wp.url); // Saves it permanently
+                        }}
                         className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${isSelected ? "border-[3px] border-[#a855f7] scale-95" : "border border-gray-800 hover:border-gray-700"}`}
                         style={{
                           backgroundImage: wp.url ? `url(${wp.url})` : "none",
