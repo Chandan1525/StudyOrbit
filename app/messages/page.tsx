@@ -50,6 +50,16 @@ function ChatInterface() {
   const [settingMute, setSettingMute] = useState(false);
   const [settingOnline, setSettingOnline] = useState(true);
 
+  // 🔥 NAYA: Wallpaper Tracker aur List
+  const [chatWallpaper, setChatWallpaper] = useState<string>("");
+
+  const WALLPAPERS = [
+    { id: "default", name: "Default", url: "" }, // Khaali = Theme color
+    { id: "doodle", name: "Doodle", url: "https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg" },
+    { id: "cyberpunk", name: "Cyberpunk", url: "https://w0.peakpx.com/wallpaper/32/79/HD-wallpaper-cyberpunk-city-pixel-art-neon-city.jpg" },
+    { id: "abstract", name: "Abstract", url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop" }
+  ];
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 1. Get Current User
@@ -78,7 +88,7 @@ function ChatInterface() {
     return () => {
       socket.off("get_online_users");
     };
-  }, [currentUser, settingOnline]); // 👈 yahan settingOnline add kiya
+  }, [currentUser, settingOnline]);
 
   // 3. Fetch Sidebar Users
   useEffect(() => {
@@ -206,7 +216,7 @@ function ChatInterface() {
     return () => {
       socket.off("receive_message", handleReceiveMessage);
     };
-  }, [activeChat, currentUser, settingMute]); // 👈 IMPORTANT: Yahan array mein `settingMute` zaroor add karna
+  }, [activeChat, currentUser, settingMute]); 
 
   // Auto Scroll
   useEffect(() => {
@@ -408,10 +418,16 @@ function ChatInterface() {
 
         {/* ── CHAT AREA ── */}
         <div
-          className={`${activeChat ? "flex" : "hidden md:flex"} flex-1 flex-col bg-transparent dark:bg-slate-950 h-full relative overflow-hidden transition-colors`}
+          className={`${activeChat ? "flex" : "hidden md:flex"} flex-1 flex-col bg-transparent dark:bg-slate-950 h-full relative overflow-hidden transition-colors bg-cover bg-center`}
+          style={{ backgroundImage: chatWallpaper ? `url(${chatWallpaper})` : "none" }}
         >
+          {/* 🔥 Dark Overlay: Taaki text messages humesha clear dikhein 🔥 */}
+          {chatWallpaper && (
+            <div className="absolute inset-0 bg-slate-900/60 z-0 pointer-events-none transition-opacity duration-300" />
+          )}
+
           {activeChat ? (
-            <div className="flex flex-col h-full w-full justify-between">
+            <div className="flex flex-col h-full w-full justify-between relative z-10">
               {/* TOPBAR */}
               <div className="h-20 border-b border-gray-200/80 dark:border-slate-800/80 px-4 md:px-8 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex-shrink-0 z-10 transition-colors">
                 <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
@@ -538,7 +554,7 @@ function ChatInterface() {
             </div>
           ) : (
             // BLANK CHAT STATE
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-transparent w-full h-full transition-colors">
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-transparent w-full h-full transition-colors relative z-10">
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -630,19 +646,47 @@ function ChatInterface() {
                 </button>
               </div>
 
-              {/* Option 3: Chat Theme (Dummy Button) */}
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-slate-800">
+              {/* Option 3: Chat Wallpaper Gallery */}
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
                 <div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-white">
                     Chat Wallpaper
                   </h4>
-                  <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                  <p className="text-[11px] font-medium text-gray-500 mt-0.5 mb-4">
                     Customize your background
                   </p>
                 </div>
-                <button className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-[11px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition">
-                  Change
-                </button>
+                
+                {/* Horizontal Scrollable Wallpaper List */}
+                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                  {WALLPAPERS.map((wp) => (
+                    <button
+                      key={wp.id}
+                      onClick={() => setChatWallpaper(wp.url)}
+                      className={`relative w-[72px] h-[96px] rounded-xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-300 ${
+                        chatWallpaper === wp.url 
+                          ? "ring-2 ring-accent ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-105" 
+                          : "border border-gray-200 dark:border-slate-700 hover:border-accent/50"
+                      }`}
+                      style={{
+                        backgroundImage: wp.url ? `url(${wp.url})` : "none",
+                        backgroundColor: !wp.url ? "#0f172a" : "transparent",
+                      }}
+                    >
+                      {!wp.url && (
+                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/50">
+                          Default
+                        </span>
+                      )}
+                      {/* Checkmark jab selected ho */}
+                      {chatWallpaper === wp.url && (
+                        <div className="absolute bottom-1 right-1 w-4 h-4 bg-accent rounded-full border border-white flex items-center justify-center">
+                          <span className="text-[8px] text-white">✓</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </motion.div>
