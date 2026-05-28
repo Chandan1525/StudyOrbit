@@ -18,7 +18,7 @@ import {
   Pencil,
   Trash2,
   X,
-  Check
+  Check,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -56,7 +56,9 @@ function ChatInterface() {
   const [editText, setEditText] = useState("");
 
   // 🔥 Green Dot Track karne ke liye state
-  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>({});
+  const [unreadChats, setUnreadChats] = useState<{ [key: string]: boolean }>(
+    {},
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // 🔥 Chat Settings Modal States
@@ -66,6 +68,9 @@ function ChatInterface() {
 
   // 🔥 NAYA: Wallpaper Tracker aur List
   const [chatWallpaper, setChatWallpaper] = useState<string>("");
+
+  // 🔥 Full Screen Image State 🔥
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
   const WALLPAPERS = [
     { id: "default", name: "Default", url: "" }, // Khaali = Theme color
@@ -108,10 +113,10 @@ function ChatInterface() {
   useEffect(() => {
     if (currentUser) {
       if (settingOnline) {
-        socket.connect(); 
+        socket.connect();
         socket.emit("add_user", currentUser._id || currentUser.id);
       } else {
-        socket.disconnect(); 
+        socket.disconnect();
       }
     }
 
@@ -250,8 +255,8 @@ function ChatInterface() {
     socket.on("message_edited", (data: { _id: string; text: string }) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg._id === data._id ? { ...msg, text: data.text } : msg
-        )
+          msg._id === data._id ? { ...msg, text: data.text } : msg,
+        ),
       );
     });
 
@@ -299,7 +304,7 @@ function ChatInterface() {
       sender: currentUser?._id || currentUser?.id,
       receiver: activeChat._id,
       text: newMessage,
-      image: localImageUrl, 
+      image: localImageUrl,
       createdAt: new Date().toISOString(),
     };
 
@@ -344,7 +349,7 @@ function ChatInterface() {
   const handleDeleteMessage = async (msgId: string) => {
     // Optimistic update
     setMessages((prev) => prev.filter((m) => m._id !== msgId));
-    
+
     // Emit to other user
     socket.emit("delete_message", { _id: msgId, receiver: activeChat._id });
 
@@ -363,7 +368,7 @@ function ChatInterface() {
 
     // Optimistic update
     setMessages((prev) =>
-      prev.map((msg) => (msg._id === msgId ? { ...msg, text: editText } : msg))
+      prev.map((msg) => (msg._id === msgId ? { ...msg, text: editText } : msg)),
     );
     setEditingMessageId(null);
 
@@ -378,7 +383,7 @@ function ChatInterface() {
       await axios.put(
         `${API}/api/messages/${msgId}`,
         { text: editText },
-        { headers: getAuthHeaders() }
+        { headers: getAuthHeaders() },
       );
     } catch (err) {
       console.error("Failed to edit message", err);
@@ -428,7 +433,7 @@ function ChatInterface() {
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in duration-200">
                     <button
                       onClick={() => {
-                        setUnreadChats({}); 
+                        setUnreadChats({});
                         setIsMenuOpen(false);
                       }}
                       className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
@@ -438,7 +443,7 @@ function ChatInterface() {
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        setIsSettingsOpen(true); 
+                        setIsSettingsOpen(true);
                       }}
                       className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors flex items-center gap-2"
                     >
@@ -583,7 +588,9 @@ function ChatInterface() {
                     <p
                       className={`${onlineUsers.includes(activeChat._id) ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
                     >
-                      {onlineUsers.includes(activeChat._id) ? "Online" : "Offline"}
+                      {onlineUsers.includes(activeChat._id)
+                        ? "Online"
+                        : "Offline"}
                     </p>
                   </div>
                 </div>
@@ -636,7 +643,8 @@ function ChatInterface() {
                             <img
                               src={msg.image}
                               alt="Shared attachment"
-                              className="max-w-full h-auto rounded-lg mb-2 object-cover"
+                              onClick={() => setFullScreenImage(msg.image)} // Opens the modal
+                              className="max-w-full h-auto rounded-lg mb-2 object-cover cursor-pointer hover:opacity-90 transition-opacity"
                               style={{ maxHeight: "300px" }}
                             />
                           )}
@@ -796,6 +804,30 @@ function ChatInterface() {
           )}
         </div>
       </div>
+
+      {/* ── 🔥 FULL SCREEN IMAGE PREVIEW MODAL 🔥 ── */}
+      {fullScreenImage && (
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setFullScreenImage(null)} // Clicking the background closes it
+        >
+          {/* Close Button */}
+          <button 
+            onClick={() => setFullScreenImage(null)}
+            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors z-50"
+          >
+            <X size={24} />
+          </button>
+
+          {/* The Image */}
+          <img 
+            src={fullScreenImage} 
+            alt="Full screen view" 
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl scale-in-100 duration-200"
+            onClick={(e) => e.stopPropagation()} // Prevents closing if you click directly on the image
+          />
+        </div>
+      )}
 
       {/* ── CHAT SETTINGS MODAL ── */}
       {isSettingsOpen && (
