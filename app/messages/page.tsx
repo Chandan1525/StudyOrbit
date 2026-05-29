@@ -191,15 +191,19 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-  // SOCKET LISTENERS
+// 🔥 SOCKET LISTENERS (UPDATED WITH SAFE IDs) 🔥
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
 
-      // 🔥 STRICT CHECK: Only show if (Sender=ActiveChat & Receiver=Me) OR (Sender=Me & Receiver=ActiveChat)
+      // 🔥 FIX: Safe ID Extraction (Object aane par crash nahi hoga)
+      const senderId = data.sender?._id || data.sender?.id || data.sender;
+      const receiverId = data.receiver?._id || data.receiver?.id || data.receiver;
+
+      // STRICT CHECK
       const isMessageForThisChat = 
-        (data.sender === activeChat?._id && data.receiver === myId) || 
-        (data.sender === myId && data.receiver === activeChat?._id);
+        (senderId === activeChat?._id && receiverId === myId) || 
+        (senderId === myId && receiverId === activeChat?._id);
 
       if (activeChat && isMessageForThisChat) {
         setMessages((prev) => {
@@ -207,18 +211,18 @@ function ChatInterface() {
           return [...prev, data];
         });
       } else {
-        // Agar message kisi aur ka hai, tabhi Unread (Green Dot) mark karo aur sound play karo
-        if (data.sender !== myId) {
-          setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
+        // Agar message kisi aur ka hai, tabhi Unread (Green Dot) mark karo
+        if (senderId !== myId) {
+          setUnreadChats((prev) => ({ ...prev, [senderId]: true }));
+          
+          // 🔥 SYNC WITH BOTTOM NAV
+          localStorage.setItem("has_new_msg", "true");
+          window.dispatchEvent(new Event("new_message_alert"));
 
           if (!settingMute) {
             try {
-              const audio = new Audio(
-                "https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3",
-              );
-              audio
-                .play()
-                .catch((err) => console.log("Browser blocked auto-play"));
+              const audio = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3");
+              audio.play().catch((err) => console.log("Browser blocked auto-play"));
             } catch (error) {
               console.error("Audio error", error);
             }
@@ -228,7 +232,7 @@ function ChatInterface() {
 
       // Move user to top of sidebar
       setChatUsers((prevUsers) => {
-        const targetUserId = data.sender === myId ? data.receiver : data.sender;
+        const targetUserId = senderId === myId ? receiverId : senderId;
         const existingIndex = prevUsers.findIndex(
           (u) => u._id === targetUserId || u.id === targetUserId,
         );

@@ -10,14 +10,19 @@ const socket = io(API);
 
 export default function BottomNav() {
   const router = useRouter();
-  const pathname = usePathname(); // 👈 Ye apne aap detect karega ki tum kis page par ho
+  const pathname = usePathname();
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Get user info
+  // Get user info aur Socket Register karo
   useEffect(() => {
     const stored = localStorage.getItem("user");
-    if (stored) setCurrentUser(JSON.parse(stored));
+    if (stored) {
+      const parsedUser = JSON.parse(stored);
+      setCurrentUser(parsedUser);
+      // 🔥 FIX 1: Jab tak add_user nahi karoge, backend message bhejna shuru nahi karega!
+      socket.emit("add_user", parsedUser._id || parsedUser.id);
+    }
   }, []);
 
   // 🔥 GLOBAL GREEN DOT LISTENER 🔥
@@ -28,7 +33,10 @@ export default function BottomNav() {
 
     const handleGlobalMsg = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
-      if (data.sender !== myId && pathname !== "/messages") {
+      // 🔥 FIX 2: Safe Object Extraction
+      const senderId = data.sender?._id || data.sender?.id || data.sender;
+      
+      if (senderId !== myId && !pathname.includes("/messages")) {
         setHasNewMessage(true);
         localStorage.setItem("has_new_msg", "true");
       }
@@ -36,8 +44,17 @@ export default function BottomNav() {
 
     socket.on("receive_message", handleGlobalMsg);
 
+    // Custom Event Listener (Jab ChatInterface dot trigger kare)
+    const syncStorage = () => {
+      if (localStorage.getItem("has_new_msg") === "true") {
+        setHasNewMessage(true);
+      }
+    };
+    window.addEventListener("new_message_alert", syncStorage);
+
     return () => {
       socket.off("receive_message", handleGlobalMsg);
+      window.removeEventListener("new_message_alert", syncStorage);
     };
   }, [currentUser, pathname]);
 
@@ -50,10 +67,9 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[999]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[999]">
       <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-slate-800 px-2 py-2.5 flex items-center justify-around transition-colors">
         {NAV.map((item) => {
-          // Check if current URL matches the item route
           const active = pathname.includes(item.route);
 
           return (
@@ -80,7 +96,7 @@ export default function BottomNav() {
                   style={{ color: active ? "var(--accent-color)" : "currentColor" }}
                 />
                 
-                {/* GREEN DOT LOGIC */}
+                {/* 🔥 MAGIC GREEN DOT LOGIC 🔥 */}
                 {item.id === "messages" && hasNewMessage && !active && (
                   <span className="absolute top-0 -right-1 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900 animate-pulse shadow-sm shadow-green-500/50" />
                 )}
