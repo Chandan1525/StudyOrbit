@@ -16,8 +16,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "chat_images", // It will create this folder in your Cloudinary account
-    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
+    folder: "chat_images", 
+    // 🔥 Added iPhone formats here 🔥
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"],
   },
 });
 
