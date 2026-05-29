@@ -736,28 +736,25 @@ function ChatInterface() {
                   )}
 
                   <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                    {/* Hidden File Input */}
+                    
+                    {/* 1. Hidden File Input */}
                     <input
                       type="file"
-                      id="file-upload" // Added an ID
+                      id="file-upload"
                       className="hidden"
                       onChange={handleFileChange}
-                      accept="image/*,.heic,.heif" // Tells iPhone to open the camera roll
+                      accept="image/*,.heic,.heif"
                     />
 
-                    {/* Attachment Button (Changed to a Label) */}
+                    {/* 2. SINGLE Attachment Button (The Label) */}
                     <label
-                      htmlFor="file-upload" // Links directly to the input ID
+                      htmlFor="file-upload"
                       className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700 cursor-pointer flex-shrink-0"
                     >
                       <Paperclip size={18} />
                     </label>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700"
-                    >
-                      <Paperclip size={18} />
-                    </button>
+
+                    {/* 3. Text Input */}
                     <input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
@@ -768,12 +765,16 @@ function ChatInterface() {
                       placeholder="Type a message..."
                       className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 text-[15px] px-2"
                     />
+
+                    {/* 4. Emoji Button */}
                     <button
                       onClick={() => setShowEmojiPicker((prev) => !prev)}
                       className="w-10 h-10 rounded-[14px] transition flex items-center justify-center text-gray-400 hover:text-accent dark:hover:text-accent"
                     >
                       <Smile size={20} />
                     </button>
+
+                    {/* 5. Send Button */}
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() && !selectedFile}
