@@ -14,7 +14,7 @@ import postRoutes from "./routes/postRoutes.js";
 import messageRoutes from './routes/messageRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import communityRoutes from './routes/communityRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js'; 
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -32,7 +32,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-      "https://study-orbit-taupe.vercel.app" 
+      "https://study-orbit-taupe.vercel.app"
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -53,17 +53,34 @@ io.on("connection", (socket) => {
     io.emit("get_online_users", Array.from(onlineUsers.values()));
   });
 
+  // 🔥 UPDATED: Send only to the specific receiver
   socket.on("send_message", (data) => {
-    socket.broadcast.emit("receive_message", data);
+    for (let [socketId, userId] of onlineUsers.entries()) {
+      if (userId === data.receiver) {
+        io.to(socketId).emit("receive_message", data);
+        break; // Stop searching once we find the receiver
+      }
+    }
   });
 
-  // 🔥 NAYA: Edit/Delete Listeners for Personal Chat
+  // 🔥 UPDATED: Edit only to the specific receiver
   socket.on("edit_message", (data) => {
-    socket.broadcast.emit("message_edited", data);
+    for (let [socketId, userId] of onlineUsers.entries()) {
+      if (userId === data.receiver) {
+        io.to(socketId).emit("message_edited", data);
+        break;
+      }
+    }
   });
 
+  // 🔥 UPDATED: Delete only to the specific receiver
   socket.on("delete_message", (data) => {
-    socket.broadcast.emit("message_deleted", data);
+    for (let [socketId, userId] of onlineUsers.entries()) {
+      if (userId === data.receiver) {
+        io.to(socketId).emit("message_deleted", data);
+        break;
+      }
+    }
   });
 
   // ==========================================
@@ -98,7 +115,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     onlineUsers.delete(socket.id);
-    io.emit("get_online_users", Array.from(onlineUsers.values())); 
+    io.emit("get_online_users", Array.from(onlineUsers.values()));
     console.log("🔴 Socket disconnected:", socket.id);
   });
 });

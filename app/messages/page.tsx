@@ -195,19 +195,22 @@ function ChatInterface() {
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
-      if (
-        activeChat &&
-        (data.sender === activeChat._id ||
-          data.receiver === activeChat._id ||
-          data.sender === myId)
-      ) {
+
+      // 🔥 STRICT CHECK: Only show if (Sender=ActiveChat & Receiver=Me) OR (Sender=Me & Receiver=ActiveChat)
+      const isMessageForThisChat = 
+        (data.sender === activeChat?._id && data.receiver === myId) || 
+        (data.sender === myId && data.receiver === activeChat?._id);
+
+      if (activeChat && isMessageForThisChat) {
         setMessages((prev) => {
           if (prev.some((m) => m._id === data._id)) return prev;
           return [...prev, data];
         });
       } else {
+        // Agar message kisi aur ka hai, tabhi Unread (Green Dot) mark karo aur sound play karo
         if (data.sender !== myId) {
           setUnreadChats((prev) => ({ ...prev, [data.sender]: true }));
+
           if (!settingMute) {
             try {
               const audio = new Audio(
@@ -215,7 +218,7 @@ function ChatInterface() {
               );
               audio
                 .play()
-                .catch(() => console.log("Browser blocked auto-play"));
+                .catch((err) => console.log("Browser blocked auto-play"));
             } catch (error) {
               console.error("Audio error", error);
             }
@@ -223,11 +226,13 @@ function ChatInterface() {
         }
       }
 
+      // Move user to top of sidebar
       setChatUsers((prevUsers) => {
         const targetUserId = data.sender === myId ? data.receiver : data.sender;
         const existingIndex = prevUsers.findIndex(
           (u) => u._id === targetUserId || u.id === targetUserId,
         );
+
         if (existingIndex > -1) {
           const userToMove = prevUsers[existingIndex];
           const newUsers = [...prevUsers];
