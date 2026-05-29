@@ -220,7 +220,7 @@ export const forgotPassword = async (req, res) => {
       
       await resend.emails.send({
         // 🔥 YAHAN MAINE TUMHARA VERIFIED DOMAIN EMAIL ADD KAR DIYA HAI 🔥
-        from: 'Chandan Kumar <support@kiitnexus.in>', 
+        from: 'StudyOrbit <support@kiitnexus.in>',
         to: user.email, 
         subject: "StudyOrbit Password Reset OTP",
         html: `
