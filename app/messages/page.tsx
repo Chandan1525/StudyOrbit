@@ -452,19 +452,42 @@ function ChatInterface() {
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 pb-36 custom-scrollbar">
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => {
-                const isActive = activeChat?._id === user._id;
-                const isUserOnline = onlineUsers.includes(user._id);
+                // 🔥 SAFE ID EXTRACTOR: Crash/Mismatch se bachne ke liye
+                const safeUserId = user._id || user.id;
+                
+                const isActive = activeChat?._id === safeUserId || activeChat?.id === safeUserId;
+                const isUserOnline = onlineUsers.includes(safeUserId);
+                
+                // Check if this specific user has unread messages
+                const hasUnread = unreadChats[safeUserId];
+
                 return (
                   <button
-                    key={user._id}
+                    key={safeUserId}
                     onClick={() => {
                       setActiveChat(user);
-                      setUnreadChats((prev) => ({
-                        ...prev,
-                        [user._id]: false,
-                      }));
+                      
+                      // 🔥 DOT REMOVE & SYNC LOGIC 🔥
+                      setUnreadChats((prev) => {
+                        const updatedChats = { ...prev, [safeUserId]: false };
+                        
+                        // Check karo ki kya koi aur chat unread bachi hai list mein?
+                        const anyUnreadLeft = Object.values(updatedChats).some(Boolean);
+                        
+                        if (!anyUnreadLeft) {
+                          // Agar aur koi chat unread nahi hai, toh Footer ka Dot bhi hamesha ke liye hata do
+                          localStorage.removeItem("has_new_msg");
+                          window.dispatchEvent(new Event("new_message_alert"));
+                        }
+                        
+                        return updatedChats;
+                      });
                     }}
-                    className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${isActive ? "bg-accent/10 dark:bg-accent/20 ring-1 ring-accent/30 shadow-sm" : "hover:bg-gray-100 dark:hover:bg-slate-800/50"}`}
+                    className={`w-full p-3 rounded-[20px] transition-all duration-300 flex items-center gap-3 text-left ${
+                      isActive
+                        ? "bg-accent/10 dark:bg-accent/20 ring-1 ring-accent/30 shadow-sm"
+                        : "hover:bg-gray-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="relative flex-shrink-0">
                       <img
@@ -479,16 +502,22 @@ function ChatInterface() {
                         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
                       )}
                     </div>
+                    
                     <div className="flex-1 overflow-hidden">
                       <h3
-                        className={`font-bold text-[15px] truncate ${isActive ? "text-gray-900 dark:text-white" : "text-gray-800 dark:text-slate-200"}`}
+                        className={`font-bold text-[15px] truncate ${
+                          isActive ? "text-gray-900 dark:text-white" : "text-gray-800 dark:text-slate-200"
+                        }`}
                       >
                         {user.name || user.username}
                       </h3>
                       <p
-                        className={`text-[11px] font-medium mt-0.5 truncate ${isActive ? "text-gray-600 dark:text-white/80" : "text-gray-400 dark:text-slate-500"}`}
+                        className={`text-[11px] font-medium mt-0.5 truncate ${
+                          isActive ? "text-gray-600 dark:text-white/80" : "text-gray-400 dark:text-slate-500"
+                        }`}
                       >
-                        {unreadChats[user._id] ? (
+                        {/* 🔥 TEXT TOGGLE MAGIC 🔥 */}
+                        {hasUnread ? (
                           <span className="text-green-500 font-bold">
                             New message received
                           </span>
@@ -497,7 +526,9 @@ function ChatInterface() {
                         )}
                       </p>
                     </div>
-                    {unreadChats[user._id] && (
+
+                    {/* 🔥 BLINKING GREEN DOT 🔥 */}
+                    {hasUnread && (
                       <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                     )}
                   </button>
