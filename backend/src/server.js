@@ -44,45 +44,52 @@ const onlineUsers = new Map(); // socket.id -> userId
 io.on("connection", (socket) => {
   console.log("🟢 Socket connected:", socket.id);
 
-  // ==========================================
+ // ==========================================
   // 1. GLOBAL & PERSONAL CHAT LOGIC
   // ==========================================
 
   socket.on("add_user", (userId) => {
-    onlineUsers.set(socket.id, userId);
+    // 🔥 FIX 1: Hamesha String mein save karo taaki mismatch na ho
+    onlineUsers.set(socket.id, String(userId));
     io.emit("get_online_users", Array.from(onlineUsers.values()));
   });
 
-  // 🔥 UPDATED: Send only to the specific receiver
+  // 🔥 UPDATED: Send message safely
   socket.on("send_message", (data) => {
+    // Backend aur Frontend dono ki IDs ko strictly String bana lo
+    const receiverId = String(data.receiver?._id || data.receiver);
+
     for (let [socketId, userId] of onlineUsers.entries()) {
-      if (userId === data.receiver) {
+      if (userId === receiverId) {
         io.to(socketId).emit("receive_message", data);
-        break; // Stop searching once we find the receiver
+        // ❌ Yahan se 'break;' hata diya! 
+        // Ab agar user 2 tabs/devices mein online hai, toh dono par message aayega.
       }
     }
   });
 
-  // 🔥 UPDATED: Edit only to the specific receiver
+  // 🔥 UPDATED: Edit message safely
   socket.on("edit_message", (data) => {
+    const receiverId = String(data.receiver?._id || data.receiver);
+
     for (let [socketId, userId] of onlineUsers.entries()) {
-      if (userId === data.receiver) {
+      if (userId === receiverId) {
         io.to(socketId).emit("message_edited", data);
-        break;
       }
     }
   });
 
-  // 🔥 UPDATED: Delete only to the specific receiver
+  // 🔥 UPDATED: Delete message safely
   socket.on("delete_message", (data) => {
+    const receiverId = String(data.receiver?._id || data.receiver);
+    
     for (let [socketId, userId] of onlineUsers.entries()) {
-      if (userId === data.receiver) {
+      if (userId === receiverId) {
         io.to(socketId).emit("message_deleted", data);
-        break;
       }
     }
   });
-
+  
   // ==========================================
   // 2. COMMUNITY CHAT (ROOMS) LOGIC 🔥
   // ==========================================
