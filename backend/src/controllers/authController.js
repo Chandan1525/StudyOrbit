@@ -219,7 +219,8 @@ export const forgotPassword = async (req, res) => {
       console.log(`Preparing to send Email to ${user.email}...`);
       
       await resend.emails.send({
-        from: 'StudyOrbit <onboarding@resend.dev>', 
+        // 🔥 YAHAN MAINE TUMHARA VERIFIED DOMAIN EMAIL ADD KAR DIYA HAI 🔥
+        from: 'Chandan Kumar <support@kiitnexus.in>', 
         to: user.email, 
         subject: "StudyOrbit Password Reset OTP",
         html: `
