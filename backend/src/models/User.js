@@ -17,13 +17,19 @@ const userSchema = new mongoose.Schema(
     github: { type: String, default: "" },
     linkedin: { type: String, default: "" },
     coverGradient: { type: String, default: "" },
-
+    
     // ── OTP / Auth ──────────────────────────────────────────
     otp: { type: String },
     otpExpire: { type: Date },
     isOtpVerified: { type: Boolean, default: false },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+    // 🔥 NEW: Saved Posts Array (To store bookmarked posts)
+    savedPosts: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post'
+    }],
 
     // 🔥 NEW: Session Tracking for Connected Devices
     sessions: [
