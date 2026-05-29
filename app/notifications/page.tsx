@@ -4,11 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, Heart, MessageSquare, UserPlus, 
-  Send, CheckCheck, BellRing, Trash2 
-} from "lucide-react";
-
+import { ArrowLeft, Heart, MessageSquare, UserPlus, Send, CheckCheck, BellRing, Trash2 } from "lucide-react";
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<any[]>([]);
