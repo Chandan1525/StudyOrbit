@@ -17,8 +17,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "chat_images", 
-    // 🔥 Added iPhone formats here 🔥
     allowed_formats: ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"],
+    // 🔥 Tell Cloudinary to automatically convert ALL images (especially iPhone HEIC) to standard JPG
+    format: "jpg", 
   },
 });
 

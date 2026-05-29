@@ -113,6 +113,8 @@ function ChatInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
+  
+
   useEffect(() => {
     if (currentUser) {
       if (settingOnline) {
@@ -729,12 +731,22 @@ function ChatInterface() {
                   )}
 
                   <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
+                    {/* Hidden File Input */}
                     <input
                       type="file"
+                      id="file-upload" // Added an ID
                       className="hidden"
-                      ref={fileInputRef}
                       onChange={handleFileChange}
+                      accept="image/*,.heic,.heif" // Tells iPhone to open the camera roll
                     />
+
+                    {/* Attachment Button (Changed to a Label) */}
+                    <label
+                      htmlFor="file-upload" // Links directly to the input ID
+                      className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700 cursor-pointer flex-shrink-0"
+                    >
+                      <Paperclip size={18} />
+                    </label>
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700"
