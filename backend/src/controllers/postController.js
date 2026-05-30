@@ -6,7 +6,7 @@ export const getFeed = async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('author', 'username name avatar')
-      .sort({ createdAt: -1 }); 
+      .sort({ createdAt: -1 });
     return res.status(200).json(posts);
   } catch (error) {
     console.error("❌ Get Feed Error:", error);
@@ -24,7 +24,7 @@ export const searchPosts = async (req, res) => {
 
     if (q.startsWith('@')) {
       isUsernameSearch = true;
-      const exactUsername = q.substring(1); 
+      const exactUsername = q.substring(1);
       userQuery = { username: { $regex: exactUsername, $options: 'i' } };
     } else {
       userQuery = {
@@ -47,7 +47,7 @@ export const searchPosts = async (req, res) => {
         $or: [
           { author: { $in: userIds } },
           { caption: { $regex: q, $options: 'i' } },
-          { hashtags: { $regex: q, $options: 'i' } } 
+          { hashtags: { $regex: q, $options: 'i' } }
         ]
       };
     }
@@ -89,7 +89,7 @@ export const likePost = async (req, res) => {
     const index = post.likes.findIndex((likeId) => likeId.toString() === userId.toString());
 
     if (index === -1) {
-      post.likes.push(userId); 
+      post.likes.push(userId);
       if (post.author.toString() !== userId.toString()) {
         await Notification.create({
           recipient: post.author,
@@ -99,7 +99,7 @@ export const likePost = async (req, res) => {
         });
       }
     } else {
-      post.likes.splice(index, 1); 
+      post.likes.splice(index, 1);
     }
 
     const updatedPost = await post.save();
@@ -125,10 +125,10 @@ export const addComment = async (req, res) => {
 
     if (post.author.toString() !== req.user.id.toString()) {
       await Notification.create({
-        recipient: post.author,  
-        sender: req.user.id,      
+        recipient: post.author,
+        sender: req.user.id,
         type: "comment",
-        text: text.trim(),        
+        text: text.trim(),
         post: post._id
       });
     }
@@ -168,8 +168,8 @@ export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
     // 👇 Yahan .limit(10) laga hoga jiski wajah se error aa raha hai
-    const posts = await Post.find({ user: userId }).sort({ createdAt: -1 }).limit(10);
-    
+    const posts = await Post.find({ user: userId }).sort({ createdAt: -1 });
+
     res.status(200).json(posts);
   } catch (error) {
     console.error("❌ Get User Posts Error:", error);
@@ -221,13 +221,13 @@ export const toggleSavePost = async (req, res) => {
 
     // Use .some() to safely compare Mongoose ObjectIds with strings
     const isSaved = user.savedPosts.some(id => id.toString() === postId.toString());
-    
+
     if (isSaved) {
       user.savedPosts = user.savedPosts.filter((id) => id.toString() !== postId.toString());
     } else {
       user.savedPosts.push(postId);
     }
-    
+
     await user.save();
     res.status(200).json({ savedPosts: user.savedPosts });
   } catch (error) {
@@ -243,10 +243,10 @@ export const getSavedPosts = async (req, res) => {
       path: 'savedPosts',
       populate: { path: 'author', select: 'name username avatar' }
     });
-    
+
     // Filter out any posts that might have been deleted, then reverse
     const validSavedPosts = user.savedPosts.filter(post => post !== null).reverse();
-    
+
     res.status(200).json(validSavedPosts);
   } catch (error) {
     console.error("Get Saved Posts Error:", error);
