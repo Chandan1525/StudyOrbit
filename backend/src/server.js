@@ -90,7 +90,7 @@ io.on("connection", (socket) => {
     }
   });
   
-  // ==========================================
+// ==========================================
   // 2. COMMUNITY CHAT (ROOMS) LOGIC 🔥
   // ==========================================
 
@@ -98,18 +98,18 @@ io.on("connection", (socket) => {
     socket.join(channelName);
     console.log(`👥 User ${socket.id} joined community: ${channelName}`);
     
-    // 🔥 NAYI LINE: Us room ke total connections nikal kar bhej do
+    // 🔥 UPDATE: io.to() ko hata kar io.emit() kar diya taaki sabhi ko sidebar me count dikhe
     const roomSize = io.sockets.adapter.rooms.get(channelName)?.size || 1;
-    io.to(channelName).emit("community_active_count", { channel: channelName, count: roomSize });
+    io.emit("community_active_count", { channel: channelName, count: roomSize });
   });
 
   socket.on("leave_community", (channelName) => {
     socket.leave(channelName);
     console.log(`🚪 User ${socket.id} left community: ${channelName}`);
     
-    // 🔥 NAYI LINE: Us room ke total connections nikal kar bhej do
+    // 🔥 UPDATE: io.to() ko hata kar io.emit() kar diya
     const roomSize = io.sockets.adapter.rooms.get(channelName)?.size || 0;
-    io.to(channelName).emit("community_active_count", { channel: channelName, count: roomSize });
+    io.emit("community_active_count", { channel: channelName, count: roomSize });
   });
 
   socket.on("send_community_message", (data) => {
@@ -123,7 +123,6 @@ io.on("connection", (socket) => {
   socket.on("delete_community_message", (data) => {
     socket.to(data.channel).emit("message_deleted", data);
   });
-
   // ==========================================
   // 3. DISCONNECT LOGIC
   // ==========================================

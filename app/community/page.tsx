@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Zap,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { io } from "socket.io-client";
 import BottomNav from "@/components/BottomNav";
@@ -30,36 +30,31 @@ const getAuthHeaders = () => {
   return { Authorization: `Bearer ${token}` };
 };
 
-// 🔥 Moved outside component so it doesn't re-render
+// 🔥 Fake 'members' hata diya gaya hai
 const CHANNELS = [
   {
     tag: "WEB",
     name: "Web Dev",
-    members: "12.5K",
     bg: "linear-gradient(135deg,#4f46e5,#7c3aed)",
   },
   {
     tag: "APP",
     name: "App Dev",
-    members: "8.3K",
     bg: "linear-gradient(135deg,#0284c7,#3b82f6)",
   },
   {
     tag: "ML",
     name: "AI & ML",
-    members: "15.7K",
     bg: "linear-gradient(135deg,#059669,#10b981)",
   },
   {
     tag: "BLOCK",
     name: "Blockchain",
-    members: "5.1K",
     bg: "linear-gradient(135deg,#f59e0b,#f97316)",
   },
   {
     tag: "DSA",
     name: "Algorithms",
-    members: "9.1K",
     bg: "linear-gradient(135deg,#db2777,#f43f5e)",
   },
 ];
@@ -67,7 +62,7 @@ const CHANNELS = [
 function CommunityInterface() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preSelectedChannel = searchParams.get("channel"); // 🔥 Read URL parameter
+  const preSelectedChannel = searchParams.get("channel");
 
   const [activeTab, setActiveTab] = useState("community");
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -84,8 +79,8 @@ function CommunityInterface() {
   const [editMsgText, setEditMsgText] = useState("");
 
   const [inviteCopied, setInviteCopied] = useState(false);
-  
-  // 🔥 NAYA STATE FOR LIVE COUNTS
+
+  // 🔥 REAL-TIME LIVE COUNTS
   const [liveCounts, setLiveCounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
@@ -93,7 +88,7 @@ function CommunityInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  // 🔥 AUTO-SELECT CHANNEL based on URL (?channel=WEB)
+  // AUTO-SELECT CHANNEL based on URL
   useEffect(() => {
     if (!preSelectedChannel) return;
     const foundChannel = CHANNELS.find((c) => c.tag === preSelectedChannel);
@@ -102,7 +97,22 @@ function CommunityInterface() {
     }
   }, [preSelectedChannel]);
 
-  // Fetch Messages
+  // 🔥 GLOBAL LIVE COUNT LISTENER (Hamesha active rahega)
+  useEffect(() => {
+    const handleActiveCount = (data: any) => {
+      setLiveCounts((prev) => ({
+        ...prev,
+        [data.channel]: data.count,
+      }));
+    };
+
+    socket.on("community_active_count", handleActiveCount);
+    return () => {
+      socket.off("community_active_count", handleActiveCount);
+    };
+  }, []);
+
+  // Fetch Messages when joining a channel
   useEffect(() => {
     if (!activeChannel) return;
 
@@ -126,7 +136,7 @@ function CommunityInterface() {
     };
   }, [activeChannel?.name]);
 
-  // Socket Listeners
+  // Specific Channel Socket Listeners
   useEffect(() => {
     if (!activeChannel) return;
 
@@ -164,24 +174,14 @@ function CommunityInterface() {
       }
     };
 
-    // 🔥 LIVE COUNT RECEIVER
-    const handleActiveCount = (data: any) => {
-       setLiveCounts((prev) => ({
-         ...prev,
-         [data.channel]: data.count
-       }));
-    };
-
     socket.on("receive_community_message", handleReceive);
     socket.on("message_edited", handleEdit);
     socket.on("message_deleted", handleDelete);
-    socket.on("community_active_count", handleActiveCount);
 
     return () => {
       socket.off("receive_community_message", handleReceive);
       socket.off("message_edited", handleEdit);
       socket.off("message_deleted", handleDelete);
-      socket.off("community_active_count", handleActiveCount);
     };
   }, [activeChannel?.name]);
 
@@ -367,7 +367,7 @@ function CommunityInterface() {
               filteredChannels.map((channel, index) => {
                 const isActive = activeChannel?.name === channel.name;
                 const liveCount = liveCounts[channel.name] || 0;
-                
+
                 return (
                   <button
                     key={index}
@@ -382,13 +382,22 @@ function CommunityInterface() {
                     <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full" />
                     <div className="relative z-10 flex flex-col justify-between h-full">
                       <div className="flex items-start justify-between">
-                        <div className="w-9 h-9 rounded-[14px] bg-white/15 backdrop-blur-xl flex items-center justify-center text-lg text-white">
+                        <div className="w-9 h-9 rounded-[14px] bg-white/15 backdrop-blur-xl flex items-center justify-center text-lg text-white shadow-sm">
                           💬
                         </div>
-                        <div className="px-2 py-0.5 rounded-full bg-black/20 text-[9px] text-white font-bold flex items-center gap-1 uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                          Live
-                        </div>
+
+                        {/* 🔥 DYNAMIC LIVE / OFFLINE BADGE 🔥 */}
+                        {liveCount > 0 ? (
+                          <div className="px-2 py-0.5 rounded-full bg-black/30 text-[9px] text-green-300 font-bold flex items-center gap-1.5 uppercase border border-green-400/20 shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
+                            Live
+                          </div>
+                        ) : (
+                          <div className="px-2 py-0.5 rounded-full bg-black/10 text-[9px] text-white/50 font-bold flex items-center gap-1 uppercase border border-white/10">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                            Offline
+                          </div>
+                        )}
                       </div>
                       <div className="mt-2">
                         <h3 className="text-white text-[22px] font-black leading-tight">
@@ -397,12 +406,14 @@ function CommunityInterface() {
                         <p className="text-white/90 mt-0.5 font-bold text-[13px]">
                           {channel.name}
                         </p>
-                        <div className="text-white/70 text-[11px] mt-1 flex items-center gap-2 font-medium">
-                          <span className="flex items-center gap-1"><User size={11} /> {channel.members} total</span>
-                          {/* 🔥 NAYI LINE: LIVE ACTIVE USERS 🔥 */}
-                          {liveCount > 0 && (
-                            <span className="flex items-center gap-1 text-green-300 font-bold border-l pl-2 border-white/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> {liveCount} chatting</span>
-                          )}
+
+                        {/* 🔥 Sahi real-time count dikhega yahan 🔥 */}
+                        <div className="text-white/90 text-[11px] mt-1.5 flex items-center gap-1.5 font-bold">
+                          <Users size={13} />
+                          <span className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg text-green-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            {liveCount} Online
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -438,16 +449,12 @@ function CommunityInterface() {
                   <div className="truncate">
                     <h2 className="text-xl md:text-2xl font-black truncate text-gray-900 dark:text-white flex items-center gap-2">
                       {activeChannel.name}
-                      {/* 🔥 NAYI LINE: Top bar me live indicator */}
-                      {liveCounts[activeChannel.name] > 0 && (
-                         <span className="px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-[9px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1 uppercase border border-green-200 dark:border-green-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          {liveCounts[activeChannel.name]} Live
-                        </span>
-                      )}
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 font-medium">
-                      {activeChannel.members.toLocaleString()} members
+
+                    {/* 🔥 TOP BAR mein real-time active chatting members count 🔥 */}
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      {liveCounts[activeChannel.name] || 0} currently active
                     </p>
                   </div>
                 </div>
