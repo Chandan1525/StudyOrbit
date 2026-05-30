@@ -167,12 +167,10 @@ export const createPost = async (req, res) => {
 export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    const posts = await Post.find({ author: userId })
-      .populate('author', 'username name avatar')
-      .sort({ createdAt: -1 })
-      .limit(10); 
-
-    return res.status(200).json(posts);
+    // 👇 Yahan .limit(10) laga hoga jiski wajah se error aa raha hai
+    const posts = await Post.find({ user: userId }).sort({ createdAt: -1 }).limit(10);
+    
+    res.status(200).json(posts);
   } catch (error) {
     console.error("❌ Get User Posts Error:", error);
     return res.status(500).json({ success: false, message: error.message });
