@@ -66,8 +66,12 @@ function TopoCanvas() {
         const ry = baseRy * (1 + distort * 0.8);
 
         // Apply rotation
-        const rotX = rx * Math.cos(theta) * Math.cos(angle) - ry * Math.sin(theta) * Math.sin(angle);
-        const rotY = rx * Math.cos(theta) * Math.sin(angle) + ry * Math.sin(theta) * Math.cos(angle);
+        const rotX =
+          rx * Math.cos(theta) * Math.cos(angle) -
+          ry * Math.sin(theta) * Math.sin(angle);
+        const rotY =
+          rx * Math.cos(theta) * Math.sin(angle) +
+          ry * Math.sin(theta) * Math.cos(angle);
 
         const x = cx + rotX;
         const y = cy + rotY;
@@ -107,8 +111,12 @@ function TopoCanvas() {
 
         const rx = baseRx * (1 + distort);
         const ry = baseRy * (1 + distort * 0.7);
-        const rotX = rx * Math.cos(theta) * Math.cos(angle) - ry * Math.sin(theta) * Math.sin(angle);
-        const rotY = rx * Math.cos(theta) * Math.sin(angle) + ry * Math.sin(theta) * Math.cos(angle);
+        const rotX =
+          rx * Math.cos(theta) * Math.cos(angle) -
+          ry * Math.sin(theta) * Math.sin(angle);
+        const rotY =
+          rx * Math.cos(theta) * Math.sin(angle) +
+          ry * Math.sin(theta) * Math.cos(angle);
 
         const x = cx2 + rotX;
         const y = cy2 + rotY;
@@ -158,30 +166,44 @@ export default function HeroSection() {
   const heroY = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
 
   return (
-    <section ref={heroRef} className="relative min-h-screen overflow-hidden flex flex-col">
-
+    <section
+      ref={heroRef}
+      className="relative min-h-screen overflow-hidden flex flex-col"
+    >
       {/* Very dark navy base — matches reference exactly */}
-      <div className="absolute inset-0" style={{
-        background: "radial-gradient(ellipse 120% 80% at 60% 50%, #0d0d2b 0%, #06060f 60%, #000000 100%)"
-      }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 120% 80% at 60% 50%, #0d0d2b 0%, #06060f 60%, #000000 100%)",
+        }}
+      />
 
       {/* Subtle bottom-left purple glow */}
-      <div className="absolute bottom-0 left-0 w-[500px] h-[400px] pointer-events-none" style={{
-        background: "radial-gradient(ellipse at 0% 100%, rgba(88,28,255,0.18) 0%, transparent 70%)"
-      }} />
+      <div
+        className="absolute bottom-0 left-0 w-[500px] h-[400px] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at 0% 100%, rgba(88,28,255,0.18) 0%, transparent 70%)",
+        }}
+      />
 
       {/* Topographic contour lines — THE KEY VISUAL */}
       <TopoCanvas />
 
       {/* Slight vignette over canvas so text pops */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 70% 70% at 25% 50%, transparent 30%, rgba(0,0,0,0.55) 100%)" }}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 70% at 25% 50%, transparent 30%, rgba(0,0,0,0.55) 100%)",
+        }}
       />
 
       {/* Hero Content */}
       <motion.div
         style={{ opacity: heroOpacity, y: heroY }}
-        className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-1 pb-16"
+        className="relative z-10 flex flex-col items-center justify-center text-center px-4 flex-1 pb-16 w-full"
       >
         <motion.div
           initial={{ opacity: 0, y: 80 }}
@@ -193,16 +215,20 @@ export default function HeroSection() {
             animate={{ opacity: 1, letterSpacing: "0.4em" }}
             transition={{ duration: 1, delay: 0.3 }}
             className="uppercase text-blue-400 text-xs md:text-sm mb-6 font-medium"
-          >
-            
-          </motion.p>
+          ></motion.p>
 
-          <h1 className="text-7xl md:text-9xl font-black tracking-tighter leading-[0.9] mb-4">
+          <h1
+            className="font-black tracking-tighter leading-[0.9] mb-4"
+            style={{ fontSize: "clamp(3.5rem, 18vw, 9rem)" }}
+          >
             STUDY
             <br />
             <span
               className="bg-clip-text text-transparent"
-              style={{ backgroundImage: "linear-gradient(90deg, #60a5fa, #a855f7, #ec4899, #f97316)" }}
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #60a5fa, #a855f7, #ec4899, #f97316)",
+              }}
             >
               ORBIT
             </span>
@@ -240,8 +266,12 @@ export default function HeroSection() {
                 transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
                 className="text-center"
               >
-                <div className="text-2xl md:text-3xl font-bold text-white">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5 uppercase tracking-widest">{s.label}</div>
+                <div className="text-2xl md:text-3xl font-bold text-white">
+                  {s.value}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5 uppercase tracking-widest">
+                  {s.label}
+                </div>
               </motion.div>
             ))}
           </div>
