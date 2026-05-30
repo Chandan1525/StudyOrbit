@@ -37,7 +37,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-// ── Custom Icons (Fix for lucide-react issue) ──
+// ── Custom Github & Linkedin Icons (Fix for lucide-react issue) ──
 const GithubIcon = ({ size = 24, className = "" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
@@ -83,8 +83,8 @@ const generateGradient = (name: string) => {
   return colors[hash % colors.length];
 };
 
-// ── Dynamic Post Grid Cell ─────────────────────────────────────────────────
-function PostCell({ post }: { post: any }) {
+// ── Dynamic Post Grid Cell (UPDATED WITH DELETE OPTION) ────────────────────
+function PostCell({ post, isOwner, onDelete }: { post: any, isOwner?: boolean, onDelete?: (id: string) => void }) {
   const [hovered, setHovered] = useState(false);
   const router = useRouter();
 
@@ -154,7 +154,7 @@ function PostCell({ post }: { post: any }) {
         </div>
       )}
 
-      {/* Hover Overlay for Likes & Share Buttons */}
+      {/* Hover Overlay for Likes, Share & Delete Buttons */}
       <AnimatePresence>
         {hovered && (
           <motion.div
@@ -180,6 +180,23 @@ function PostCell({ post }: { post: any }) {
             >
               <Share2 size={15} />
             </motion.button>
+
+            {/* 🔥 DELETE BUTTON FOR POSTS 🔥 */}
+            {isOwner && onDelete && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onDelete(post._id);
+                }}
+                className="flex items-center justify-center p-2.5 rounded-full bg-red-500 text-white shadow-lg transition-all border border-white/20 relative z-30 cursor-pointer hover:bg-red-600"
+                title="Delete Post"
+              >
+                <Trash2 size={15} />
+              </motion.button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -271,6 +288,25 @@ export default function ProfilePage() {
     fetchMyProfileAndPosts();
   }, [router]);
 
+  // 🔥 HANDLE POST DELETE
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to delete this post? This cannot be undone.")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/${postId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // UI se turant hata do
+      setPosts((prev) => prev.filter((p) => p._id !== postId));
+      alert("✅ Post deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete post", error);
+      alert("Error deleting post.");
+    }
+  };
+
   // 🔥 HANDLE PROJECT DELETE
   const handleDeleteProject = async (projectId: string) => {
     if (!window.confirm("Are you sure you want to delete this project?")) return;
@@ -342,8 +378,8 @@ export default function ProfilePage() {
     location: profileUser?.location || FALLBACK_USER.location,
     bio: profileUser?.bio || profileUser?.about || FALLBACK_USER.bio,
     website: profileUser?.website || FALLBACK_USER.website,
-    github: profileUser?.github || "",     // 🔥 Added GitHub
-    linkedin: profileUser?.linkedin || "", // 🔥 Added LinkedIn
+    github: profileUser?.github || "",     
+    linkedin: profileUser?.linkedin || "", 
     coverGradient: profileUser?.coverGradient || FALLBACK_USER.coverGradient,
     skills: profileUser?.skills?.length
       ? profileUser.skills
@@ -353,8 +389,8 @@ export default function ProfilePage() {
     following: actualFollowing.length,
   };
 
-  // PROFILE OWNER CHECK
-  const isOwner = loggedInUserId === profileUser?._id || loggedInUserId === profileUser?.id || true;
+  // PROFILE OWNER CHECK (Safe check ensuring it matches actual login)
+  const isOwner = Boolean(loggedInUserId && (loggedInUserId === profileUser?._id || loggedInUserId === profileUser?.id));
 
   const getSkillColors = (index: number) => {
     const colors = [
@@ -560,7 +596,7 @@ export default function ProfilePage() {
             {USER.username}
           </p>
           
-          {/* 🔥 SOCIAL LINKS ROW (UPDATED WITH GITHUB & LINKEDIN) 🔥 */}
+          {/* 🔥 SOCIAL LINKS ROW 🔥 */}
           <div className="flex items-center justify-center gap-4 mt-2 flex-wrap text-xs text-gray-500 dark:text-slate-400 transition-colors">
             {USER.location && (
               <span className="flex items-center gap-1">
@@ -825,7 +861,7 @@ export default function ProfilePage() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: i * 0.04 }}
                         >
-                          <PostCell post={post} />
+                          <PostCell post={post} isOwner={isOwner} onDelete={handleDeletePost} />
                         </motion.div>
                       ),
                     )}
@@ -876,6 +912,7 @@ export default function ProfilePage() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.04 }}
                       >
+                        {/* They shouldn't delete original posts from saved feed, so we don't pass onDelete here */}
                         <PostCell post={post} />
                       </motion.div>
                     ))}
