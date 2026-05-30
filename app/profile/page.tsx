@@ -33,7 +33,17 @@ import {
   Share2,
   Bookmark,
   X,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+
+// ── Custom Github Icon (Fix for lucide-react issue) ──
+const GithubIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+    <path d="M9 18c-4.51 2-5-2-7-2"></path>
+  </svg>
+);
 
 // ── Static Fallback Data ──────────────────────────────────────────────────
 const FALLBACK_USER = {
@@ -50,42 +60,6 @@ const FALLBACK_USER = {
   skills: [],
 };
 
-const PROJECTS = [
-  {
-    id: 1,
-    name: "DevHive Forum",
-    desc: "Real-time Q&A platform for developers with Socket.io chat, upvoting, and code highlighting.",
-    tech: ["React", "Express", "Socket.io", "MongoDB"],
-    stars: 142,
-    gradient: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-    icon: "💬",
-    github: "#",
-    live: "#",
-  },
-  {
-    id: 2,
-    name: "ML Notes Classifier",
-    desc: "NLP-powered tool that auto-tags and organizes study notes using Python and scikit-learn.",
-    tech: ["Python", "Flask", "NLTK", "scikit-learn"],
-    stars: 89,
-    gradient: "linear-gradient(135deg,#f59e0b,#f97316)",
-    icon: "🧠",
-    github: "#",
-    live: "#",
-  },
-  {
-    id: 3,
-    name: "StudyOrbit",
-    desc: "A growth-oriented student platform for learning, collaborating, and discovering opportunities.",
-    tech: ["Next.js", "Node.js", "MongoDB", "Tailwind"],
-    stars: 318,
-    gradient: "linear-gradient(135deg,#10b981,#059669)",
-    icon: "🚀",
-    github: "#",
-    live: "#",
-  },
-];
-
 // ── Dynamic Gradient Generator ─────────────────────────────────────────────
 const generateGradient = (name: string) => {
   const colors = [
@@ -100,58 +74,6 @@ const generateGradient = (name: string) => {
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
-
-// ── QR Code SVG ────────────────────────────────────────────────────────────
-function QRCodeSVG() {
-  const cells = [
-    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0],
-    [0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0],
-    [0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1],
-    [1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1],
-  ];
-  const size = 21;
-  const cell = 10;
-  return (
-    <svg
-      width={size * cell}
-      height={size * cell}
-      viewBox={`0 0 ${size * cell} ${size * cell}`}
-    >
-      {cells.map((row, r) =>
-        row.map((filled, c) =>
-          filled ? (
-            <rect
-              key={`${r}-${c}`}
-              x={c * cell + 1}
-              y={r * cell + 1}
-              width={cell - 2}
-              height={cell - 2}
-              rx="1.5"
-              fill="#1a1a2e"
-            />
-          ) : null,
-        ),
-      )}
-    </svg>
-  );
-}
 
 // ── Dynamic Post Grid Cell ─────────────────────────────────────────────────
 function PostCell({ post }: { post: any }) {
@@ -237,13 +159,11 @@ function PostCell({ post }: { post: any }) {
               backdropFilter: "blur(2px)",
             }}
           >
-            {/* Likes Badge */}
             <div className="flex items-center gap-1.5 text-white text-sm font-bold bg-black/60 px-4 py-2 rounded-full backdrop-blur-md">
               <Heart size={15} fill="white" className="text-white" />
               {post.likes?.length || 0}
             </div>
 
-            {/* Share Button */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
@@ -263,9 +183,7 @@ function PostCell({ post }: { post: any }) {
 export default function ProfilePage() {
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<
-    "posts" | "projects" | "qr" | "saved"
-  >("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "projects" | "qr" | "saved">("posts");
   const [profileUser, setProfileUser] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
@@ -275,9 +193,11 @@ export default function ProfilePage() {
 
   // 🔥 NETWORK MODAL STATES
   const [showNetworkModal, setShowNetworkModal] = useState(false);
-  const [networkTab, setNetworkTab] = useState<"followers" | "following">(
-    "followers",
-  );
+  const [networkTab, setNetworkTab] = useState<"followers" | "following">("followers");
+
+  // 🔥 PROJECT EDIT/DELETE STATES
+  const [editingProject, setEditingProject] = useState<any>(null);
+  const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMyProfileAndPosts = async () => {
@@ -290,9 +210,10 @@ export default function ProfilePage() {
 
         const me = JSON.parse(storedUser);
         const userId = me.id || me._id;
+        setLoggedInUserId(userId);
         const token = localStorage.getItem("token");
 
-        // 1. Fetch FRESH Profile Data (Assuming followers/following are populated arrays of objects)
+        // 1. Fetch FRESH Profile Data
         const profileRes = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
         );
@@ -342,6 +263,53 @@ export default function ProfilePage() {
     fetchMyProfileAndPosts();
   }, [router]);
 
+  // 🔥 HANDLE PROJECT DELETE
+  const handleDeleteProject = async (projectId: string) => {
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/project/${projectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfileUser((prev: any) => ({
+        ...prev,
+        projects: prev.projects.filter((p: any) => p._id !== projectId)
+      }));
+    } catch (error) {
+      console.error("Failed to delete project", error);
+      alert("Error deleting project.");
+    }
+  };
+
+  // 🔥 HANDLE PROJECT EDIT
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/project/${editingProject._id}`,
+        {
+          name: editingProject.name,
+          desc: editingProject.desc,
+          tech: typeof editingProject.tech === 'string' ? editingProject.tech : editingProject.tech.join(', '),
+          github: editingProject.github,
+          live: editingProject.live
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setProfileUser((prev: any) => ({
+        ...prev,
+        projects: prev.projects.map((p: any) => p._id === editingProject._id ? res.data.project : p)
+      }));
+      setEditingProject(null);
+      alert("✅ Project updated!");
+    } catch (error) {
+      console.error("Failed to update project", error);
+    }
+  };
+
   // Derived user values
   const actualFollowers = profileUser?.followers || [];
   const actualFollowing = profileUser?.following || [];
@@ -349,7 +317,6 @@ export default function ProfilePage() {
   const networkPreview = actualFollowers
     .slice(0, 5)
     .map((f: any, index: number) => ({
-      // Agar 'f' sirf ek string (ID) hai, toh usko hi id maan lo, warna index use karo
       id: f._id || f.id || (typeof f === "string" ? f : index),
       name: f.name || "User",
       avatar: f.avatar,
@@ -375,6 +342,9 @@ export default function ProfilePage() {
     followers: actualFollowers.length,
     following: actualFollowing.length,
   };
+
+  // PROFILE OWNER CHECK
+  const isOwner = loggedInUserId === profileUser?._id || loggedInUserId === profileUser?.id || true;
 
   const getSkillColors = (index: number) => {
     const colors = [
@@ -740,7 +710,7 @@ export default function ProfilePage() {
                 <>
                   {networkPreview.map((n: any, i: number) => (
                     <motion.div
-                      key={n.id || i} // 🔥 YAHAN FALLBACK LAGA DIYA
+                      key={n.id || i}
                       whileHover={{ y: -3, scale: 1.1 }}
                       className="w-11 h-11 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-slate-900 shadow-sm transition-colors overflow-hidden"
                       style={{
@@ -903,93 +873,145 @@ export default function ProfilePage() {
           )}
 
           {/* ── Projects Tab ── */}
+          {/* ── Projects Tab ── */}
           {activeTab === "projects" && (
-            <motion.div
-              key="projects"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="px-5 flex flex-col gap-4"
-            >
-              {PROJECTS.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-gray-50 dark:border-slate-800 transition-colors"
-                >
-                  <div
-                    className="h-1.5 w-full"
-                    style={{ background: p.gradient }}
-                  />
-                  <div className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                          style={{ background: p.gradient }}
-                        >
-                          {p.icon}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="projects"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="flex flex-col gap-4 px-5"
+              >
+                {/* Add Project Button */}
+                {isOwner && (
+                  <Link href="/create-project">
+                    <button className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-3xl text-gray-500 dark:text-slate-400 font-bold hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2 bg-white/50 dark:bg-slate-900/50 shadow-sm">
+                      <PlusSquare size={18} /> Add New Project
+                    </button>
+                  </Link>
+                )}
+
+                {/* Display Projects (🔥 Yahan profileUser aayega profileData ki jagah) */}
+                {profileUser?.projects && profileUser.projects.length > 0 ? (
+                  profileUser.projects.map((p: any, i: number) => (
+                    <motion.div
+                      key={p._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-800 transition-colors relative group"
+                    >
+                      {/* EDIT & DELETE BUTTONS */}
+                      {isOwner && (
+                        <div className="absolute top-4 right-4 flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setEditingProject(p)}
+                            className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 shadow-md"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(p._id)}
+                            className="w-8 h-8 rounded-full bg-red-500/80 backdrop-blur-md flex items-center justify-center text-white hover:bg-red-600 shadow-md"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                        <div>
-                          <h3 className="text-sm font-black text-gray-900 dark:text-white transition-colors">
-                            {p.name}
-                          </h3>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Star
-                              size={10}
-                              className="text-amber-400 fill-amber-400"
-                            />
-                            <span className="text-xs text-gray-500 dark:text-slate-400 font-medium transition-colors">
-                              {p.stars} stars
-                            </span>
+                      )}
+
+                      <div
+                        className="h-1.5 w-full"
+                        style={{
+                          background:
+                            p.gradient ||
+                            "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                        }}
+                      />
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
+                              style={{
+                                background:
+                                  p.gradient ||
+                                  "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                              }}
+                            >
+                              {p.icon || "🚀"}
+                            </div>
+                            <div>
+                              <h3 className="text-base font-black text-gray-900 dark:text-white transition-colors">
+                                {p.name}
+                              </h3>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Star
+                                  size={12}
+                                  className="text-amber-400 fill-amber-400"
+                                />
+                                <span className="text-xs text-gray-500 dark:text-slate-400 font-medium transition-colors">
+                                  {p.stars || 0} stars
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            {p.github && (
+                              <motion.a
+                                href={p.github}
+                                target="_blank"
+                                whileTap={{ scale: 0.9 }}
+                                className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center transition-colors shadow-sm"
+                              >
+                                <GithubIcon
+                                  size={16}
+                                  className="text-gray-900 dark:text-white"
+                                />
+                              </motion.a>
+                            )}
+                            {p.live && (
+                              <motion.a
+                                href={p.live}
+                                target="_blank"
+                                whileTap={{ scale: 0.9 }}
+                                className="w-9 h-9 rounded-xl flex items-center justify-center bg-accent transition-colors shadow-sm shadow-accent/30"
+                              >
+                                <ExternalLink
+                                  size={16}
+                                  className="text-white"
+                                />
+                              </motion.a>
+                            )}
                           </div>
                         </div>
+                        <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed mb-4 transition-colors">
+                          {p.desc}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {p.tech &&
+                            p.tech.map((t: string) => (
+                              <span
+                                key={t}
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-accent/10 text-accent transition-colors"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <motion.a
-                          href={p.github}
-                          whileTap={{ scale: 0.9 }}
-                          className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center transition-colors"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            className="text-gray-600 dark:text-slate-300"
-                          >
-                            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-                          </svg>
-                        </motion.a>
-                        <motion.a
-                          href={p.live}
-                          whileTap={{ scale: 0.9 }}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center bg-accent transition-colors"
-                        >
-                          <ExternalLink size={14} className="text-white" />
-                        </motion.a>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mb-3 transition-colors">
-                      {p.desc}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-3xl border border-gray-50 dark:border-slate-800 shadow-sm transition-colors">
+                    <p className="text-sm font-bold text-gray-500 dark:text-slate-400 mb-3">
+                      No projects added yet!
                     </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {p.tech.map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-accent/10 text-accent transition-colors"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
 
           {/* ── QR Tab ── */}
@@ -1177,6 +1199,54 @@ export default function ProfilePage() {
                   </motion.div>
                 </AnimatePresence>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── EDIT PROJECT MODAL ── */}
+      <AnimatePresence>
+        {editingProject && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-gray-100 dark:border-slate-800"
+            >
+              <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-slate-800">
+                <h3 className="font-black text-lg text-gray-900 dark:text-white">Edit Project</h3>
+                <button onClick={() => setEditingProject(null)} className="p-2 bg-gray-100 dark:bg-slate-800 rounded-full text-gray-500 hover:text-red-500 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateProject} className="p-5 space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Project Name</label>
+                  <input required type="text" value={editingProject.name} onChange={(e) => setEditingProject({...editingProject, name: e.target.value})} className="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-sm outline-none focus:border-accent text-gray-900 dark:text-white transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Description</label>
+                  <textarea required rows={3} value={editingProject.desc} onChange={(e) => setEditingProject({...editingProject, desc: e.target.value})} className="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-sm outline-none focus:border-accent text-gray-900 dark:text-white transition-colors custom-scrollbar" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Tech Stack (Comma Separated)</label>
+                  <input type="text" value={typeof editingProject.tech === 'string' ? editingProject.tech : editingProject.tech?.join(', ')} onChange={(e) => setEditingProject({...editingProject, tech: e.target.value})} className="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-sm outline-none focus:border-accent text-gray-900 dark:text-white transition-colors" />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">GitHub URL</label>
+                    <input type="url" value={editingProject.github || ''} onChange={(e) => setEditingProject({...editingProject, github: e.target.value})} className="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-sm outline-none focus:border-accent text-gray-900 dark:text-white transition-colors" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Live Demo</label>
+                    <input type="url" value={editingProject.live || ''} onChange={(e) => setEditingProject({...editingProject, live: e.target.value})} className="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-sm outline-none focus:border-accent text-gray-900 dark:text-white transition-colors" />
+                  </div>
+                </div>
+                <button type="submit" className="w-full py-3.5 bg-accent text-white font-bold rounded-xl mt-4 hover:opacity-90 transition-opacity shadow-lg shadow-accent/20">
+                  Save Changes
+                </button>
+              </form>
             </motion.div>
           </div>
         )}

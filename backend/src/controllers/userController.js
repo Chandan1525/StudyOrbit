@@ -88,13 +88,101 @@ export const getUserProfile = async (req, res) => {
         linkedin: user.linkedin,
         coverGradient: user.coverGradient,
         followers: user.followers || [],
-        // 🔥 PEHLE YAHAN SIRF LENGTH THI, AB POORA ARRAY BHEJ RAHE HAIN 🔥
         following: user.following || [], 
+        projects: user.projects || [] // 🔥 Projects ko bhi send karna zaroori hai
       }
     });
   } catch (error) {
     console.error("❌ Error fetching user profile:", error);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const addProject = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { name, desc, tech, github, live } = req.body;
+
+    // Tech string (comma separated) ko array mein convert karna
+    const techArray = tech ? tech.split(',').map(t => t.trim()) : [];
+
+    // Random gradient generator
+    const gradients = [
+      "linear-gradient(135deg,#1e1b4b,#312e81)",
+      "linear-gradient(135deg,#064e3b,#065f46)",
+      "linear-gradient(135deg,#4c1d95,#5b21b6)",
+      "linear-gradient(135deg,#7c2d12,#9a3412)"
+    ];
+    const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newProject = {
+      name,
+      desc,
+      tech: techArray,
+      github,
+      live,
+      gradient: randomGradient,
+      stars: 0
+    };
+
+    // Naya project shuru mein add karo
+    user.projects.unshift(newProject);
+    await user.save();
+
+    res.status(201).json({ success: true, project: newProject, message: "Project added successfully!" });
+  } catch (error) {
+    console.error("Add Project Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────
+//  EDIT AND DELETE PROJECT FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────
+export const editProject = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { projectId } = req.params;
+    const { name, desc, tech, github, live } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const projectIndex = user.projects.findIndex(p => p._id.toString() === projectId);
+    if (projectIndex === -1) return res.status(404).json({ message: "Project not found" });
+
+    if (name) user.projects[projectIndex].name = name;
+    if (desc) user.projects[projectIndex].desc = desc;
+    if (tech) user.projects[projectIndex].tech = typeof tech === 'string' ? tech.split(',').map(t => t.trim()) : tech;
+    if (github !== undefined) user.projects[projectIndex].github = github;
+    if (live !== undefined) user.projects[projectIndex].live = live;
+
+    await user.save();
+    res.status(200).json({ success: true, project: user.projects[projectIndex], message: "Project updated!" });
+  } catch (error) {
+    console.error("Edit Project Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deleteProject = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { projectId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.projects = user.projects.filter(p => p._id.toString() !== projectId);
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Project deleted successfully!" });
+  } catch (error) {
+    console.error("Delete Project Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -130,10 +218,9 @@ export const toggleFollow = async (req, res) => {
       targetUser.followers.push(loggedInUserId);
       currentUser.following.push(targetUserId);
 
-      // 🔥 NAYI CHEEZ: Notification create karo jab koi follow kare 🔥
       await Notification.create({
-        recipient: targetUserId,  // Jisko notification milegi (Target User)
-        sender: loggedInUserId,   // Jisne follow kiya (Current User)
+        recipient: targetUserId,  
+        sender: loggedInUserId,   
         type: "follow"
       });
     }

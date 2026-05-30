@@ -17,7 +17,19 @@ const userSchema = new mongoose.Schema(
     github: { type: String, default: "" },
     linkedin: { type: String, default: "" },
     coverGradient: { type: String, default: "" },
-    
+
+    // Baki user details ke neeche ye add karo
+    projects: [{
+      name: { type: String, required: true },
+      desc: { type: String, required: true },
+      tech: [{ type: String }],
+      github: { type: String },
+      live: { type: String },
+      icon: { type: String, default: "🚀" },
+      stars: { type: Number, default: 0 },
+      gradient: { type: String, default: "linear-gradient(135deg,#6366f1,#8b5cf6)" }
+    }],
+
     // ── OTP / Auth ──────────────────────────────────────────
     otp: { type: String },
     otpExpire: { type: Date },

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getUsersForSidebar, getUserProfile, toggleFollow } from '../controllers/userController.js'; 
+import { getUsersForSidebar, getUserProfile, toggleFollow, addProject, editProject, deleteProject } from '../controllers/userController.js'; 
 import { protect } from '../middleware/authMiddleware.js';
 import { updateProfile } from "../controllers/authController.js";
 import User from "../models/User.js";
@@ -12,9 +12,12 @@ router.put("/update-profile", updateProfile);
 router.get('/profile/:id', getUserProfile);
 router.put('/follow/:id', protect, toggleFollow);
 
-// ── NAYE ROUTES: CONNECTED DEVICES (SESSIONS) KE LIYE ──
+// ── PROJECT ROUTES ──
+router.post('/project', protect, addProject);
+router.put('/project/:projectId', protect, editProject);
+router.delete('/project/:projectId', protect, deleteProject);
 
-// 1. Get all active sessions
+// ── CONNECTED DEVICES (SESSIONS) KE LIYE ──
 router.get("/sessions", protect, async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
@@ -24,7 +27,6 @@ router.get("/sessions", protect, async (req, res) => {
     const user = await User.findById(req.user.id || req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 🔥 MAIN FIX: Agar purana user hai jiska sessions data exist nahi karta, to crash hone se bachao
     const activeSessions = user.sessions || [];
 
     const formattedSessions = activeSessions.map(s => {
@@ -50,7 +52,6 @@ router.get("/sessions", protect, async (req, res) => {
   }
 });
 
-// 2. Revoke (Delete) a session
 router.delete("/sessions/:sessionId", protect, async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
