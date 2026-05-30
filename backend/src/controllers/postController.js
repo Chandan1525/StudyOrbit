@@ -167,8 +167,11 @@ export const createPost = async (req, res) => {
 export const getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    // 👇 Yahan .limit(10) laga hoga jiski wajah se error aa raha hai
-    const posts = await Post.find({ user: userId }).sort({ createdAt: -1 });
+    
+    // 🔥 FIX: 'user' ki jagah 'author' kar diya aur limit hata di! 🔥
+    const posts = await Post.find({ author: userId })
+      .populate('author', 'name username avatar')
+      .sort({ createdAt: -1 });
 
     res.status(200).json(posts);
   } catch (error) {
