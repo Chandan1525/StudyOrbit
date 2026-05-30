@@ -217,38 +217,22 @@ function CommunityInterface() {
   };
 
   // 🔥 UPDATED SEND MESSAGE (Handles Image Upload via Cloudinary) 🔥
+  // 🔥 UPDATED SEND MESSAGE (Fixed to match Personal Chat Logic) 🔥
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !selectedImage) || !currentUser || !activeChannel) return;
-    
+
     setIsUploading(true);
-    let uploadedImageUrl = "";
-
-    // If an image is selected, upload to Cloudinary first
-    if (selectedImage) {
-      const formData = new FormData();
-      formData.append("file", selectedImage);
-      
-      // ⚠️ UPDATE THESE WITH YOUR ACTUAL CLOUDINARY PRESET AND CLOUD NAME
-      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "your_unsigned_preset");
-
-      try {
-        const uploadRes = await axios.post(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "your_cloud_name"}/image/upload`,
-          formData
-        );
-        uploadedImageUrl = uploadRes.data.secure_url;
-      } catch (error) {
-        console.error("Image upload failed", error);
-        alert("Failed to upload image. Please try again.");
-        setIsUploading(false);
-        return;
-      }
-    }
-
     const msgId = Date.now().toString();
+
+    // Create local preview immediately for fast UI
+    let localImageUrl = "";
+    if (selectedImage) {
+      localImageUrl = URL.createObjectURL(selectedImage);
+    }
 
     const newMsg = {
       id: msgId,
+      _id: msgId, // Adding _id for consistency with some socket events
       user: currentUser?.name || currentUser?.username || "Student",
       role: "Member",
       time: new Date().toLocaleTimeString("en-IN", {
@@ -256,7 +240,7 @@ function CommunityInterface() {
         minute: "2-digit",
       }),
       text: newMessage.trim(),
-      image: uploadedImageUrl, // Append the uploaded image URL
+      image: localImageUrl, // Show local image instantly
       avatar: (currentUser?.name || currentUser?.username || "S")
         .charAt(0)
         .toUpperCase(),
@@ -264,29 +248,65 @@ function CommunityInterface() {
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
-    setNewMessage("");
-    handleRemoveImage(); // Clear preview
-    setIsUploading(false);
+    
+    // Save these before clearing states
+    const textToSend = newMessage.trim();
+    const fileToSend = selectedImage;
 
-    socket.emit("send_community_message", {
-      channel: activeChannel.name,
-      message: newMsg,
-    });
+    setNewMessage("");
+    handleRemoveImage();
+
+    // We emit to socket first so others see it instantly (if image, they won't see it until backend replies, or we can send file Buffer if socket supports it, but standard is to let backend handle image first. For now, text goes instantly.)
+    if (!fileToSend) {
+      socket.emit("send_community_message", {
+        channel: activeChannel.name,
+        message: newMsg,
+      });
+      setIsUploading(false);
+    }
+
+    // Prepare FormData just like in personal chat
+    const formData = new FormData();
+    if (textToSend) formData.append("text", textToSend);
+    if (fileToSend) formData.append("image", fileToSend); // Key should match what backend Multer expects
 
     try {
       const res = await axios.post(
         `${API}/api/community/${encodeURIComponent(activeChannel.name)}/messages`,
-        { text: newMsg.text, image: newMsg.image }, // Send image URL to backend DB
-        { headers: getAuthHeaders() },
+        formData, // Sending FormData instead of JSON
+        { 
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "multipart/form-data", // Crucial for file uploads
+          } 
+        },
       );
+
+      // If there was an image, emit to socket AFTER we get the Cloudinary URL from backend
+      if (fileToSend) {
+         const finalMsg = {
+            ...newMsg,
+            image: res.data.image, // Actual URL from backend
+            _id: res.data._id,
+            id: res.data._id
+         };
+         socket.emit("send_community_message", {
+            channel: activeChannel.name,
+            message: finalMsg,
+          });
+      }
 
       setChatMessages((prev) =>
         prev.map((m) =>
-          m.id === msgId ? { ...m, _id: res.data._id, id: res.data._id } : m,
+          m.id === msgId ? { ...m, _id: res.data._id, id: res.data._id, image: res.data.image || m.image } : m,
         ),
       );
     } catch (err) {
       console.error("Failed to save message", err);
+      // Optional: remove message if failed
+      // setChatMessages((prev) => prev.filter((m) => m.id !== msgId));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -448,14 +468,16 @@ function CommunityInterface() {
                       )}
                     </div>
 
+                    {/* ── BOTTOM ROW: TEXT & STATS ── */}
                     <div className="relative z-10 w-full mt-auto">
                       <h3 className="text-white text-[22px] font-black leading-none tracking-tight truncate">
                         {channel.tag}
                       </h3>
-                      <p className="text-white/90 mt-1.5 font-bold text-[13px] leading-none truncate">
+                      <p className="text-white/90 mt-1 font-bold text-[13px] leading-none truncate">
                         {channel.name}
                       </p>
                       
+                      {/* 🔥 PURANA FAKE DATA HATA DIYA, AB SIRF LIVE COUNT DIKHEGA 🔥 */}
                       <div className={`text-[11px] mt-2.5 flex items-center gap-1.5 font-medium leading-none ${liveCount > 0 ? "text-green-300 font-bold" : "text-white/60"}`}>
                         <span className={`w-1.5 h-1.5 flex-shrink-0 rounded-full ${liveCount > 0 ? "bg-green-400 animate-pulse" : "bg-white/30"}`} />
                         {liveCount} {liveCount === 1 ? "Member" : "Members"} Online
