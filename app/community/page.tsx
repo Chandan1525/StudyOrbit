@@ -15,6 +15,7 @@ import {
   Check,
   ArrowLeft,
   Zap,
+  Loader2, // 🔥 Added loader for image uploading state
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -30,7 +31,6 @@ const getAuthHeaders = () => {
   return { Authorization: `Bearer ${token}` };
 };
 
-// 🔥 Fake 'members' hata diya gaya hai
 const CHANNELS = [
   {
     tag: "WEB",
@@ -79,9 +79,13 @@ function CommunityInterface() {
   const [editMsgText, setEditMsgText] = useState("");
 
   const [inviteCopied, setInviteCopied] = useState(false);
-
-  // 🔥 REAL-TIME LIVE COUNTS
   const [liveCounts, setLiveCounts] = useState<{ [key: string]: number }>({});
+
+  // 🔥 IMAGE UPLOAD STATES 🔥
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -97,7 +101,7 @@ function CommunityInterface() {
     }
   }, [preSelectedChannel]);
 
-  // 🔥 GLOBAL LIVE COUNT LISTENER (Hamesha active rahega)
+  // GLOBAL LIVE COUNT LISTENER
   useEffect(() => {
     const handleActiveCount = (data: any) => {
       setLiveCounts((prev) => ({
@@ -197,8 +201,50 @@ function CommunityInterface() {
     );
   };
 
+  // 🔥 IMAGE HANDLERS 🔥
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // 🔥 UPDATED SEND MESSAGE (Handles Image Upload via Cloudinary) 🔥
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUser || !activeChannel) return;
+    if ((!newMessage.trim() && !selectedImage) || !currentUser || !activeChannel) return;
+    
+    setIsUploading(true);
+    let uploadedImageUrl = "";
+
+    // If an image is selected, upload to Cloudinary first
+    if (selectedImage) {
+      const formData = new FormData();
+      formData.append("file", selectedImage);
+      
+      // ⚠️ UPDATE THESE WITH YOUR ACTUAL CLOUDINARY PRESET AND CLOUD NAME
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "your_unsigned_preset");
+
+      try {
+        const uploadRes = await axios.post(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "your_cloud_name"}/image/upload`,
+          formData
+        );
+        uploadedImageUrl = uploadRes.data.secure_url;
+      } catch (error) {
+        console.error("Image upload failed", error);
+        alert("Failed to upload image. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+    }
+
     const msgId = Date.now().toString();
 
     const newMsg = {
@@ -210,6 +256,7 @@ function CommunityInterface() {
         minute: "2-digit",
       }),
       text: newMessage.trim(),
+      image: uploadedImageUrl, // Append the uploaded image URL
       avatar: (currentUser?.name || currentUser?.username || "S")
         .charAt(0)
         .toUpperCase(),
@@ -218,6 +265,8 @@ function CommunityInterface() {
 
     setChatMessages((prev) => [...prev, newMsg]);
     setNewMessage("");
+    handleRemoveImage(); // Clear preview
+    setIsUploading(false);
 
     socket.emit("send_community_message", {
       channel: activeChannel.name,
@@ -227,7 +276,7 @@ function CommunityInterface() {
     try {
       const res = await axios.post(
         `${API}/api/community/${encodeURIComponent(activeChannel.name)}/messages`,
-        { text: newMsg.text },
+        { text: newMsg.text, image: newMsg.image }, // Send image URL to backend DB
         { headers: getAuthHeaders() },
       );
 
@@ -372,49 +421,44 @@ function CommunityInterface() {
                   <button
                     key={index}
                     onClick={() => setActiveChannel(channel)}
-                    className={`w-full h-[135px] rounded-[28px] p-4 relative overflow-hidden transition-all duration-300 text-left shadow-sm hover:shadow-md ${
+                    className={`w-full h-[135px] rounded-[28px] p-4 relative overflow-hidden transition-all duration-300 text-left shadow-sm hover:shadow-md flex flex-col justify-between ${
                       isActive
                         ? "ring-4 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950 ring-accent scale-[1.02]"
                         : "hover:scale-[1.02]"
                     }`}
                     style={{ background: channel.bg }}
                   >
-                    <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full" />
-                    <div className="relative z-10 flex flex-col justify-between h-full">
-                      <div className="flex items-start justify-between">
-                        <div className="w-9 h-9 rounded-[14px] bg-white/15 backdrop-blur-xl flex items-center justify-center text-lg text-white shadow-sm">
-                          💬
-                        </div>
-
-                        {/* 🔥 DYNAMIC LIVE / OFFLINE BADGE 🔥 */}
-                        {liveCount > 0 ? (
-                          <div className="px-2 py-0.5 rounded-full bg-black/30 text-[9px] text-green-300 font-bold flex items-center gap-1.5 uppercase border border-green-400/20 shadow-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
-                            Live
-                          </div>
-                        ) : (
-                          <div className="px-2 py-0.5 rounded-full bg-black/10 text-[9px] text-white/50 font-bold flex items-center gap-1 uppercase border border-white/10">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                            Offline
-                          </div>
-                        )}
+                    <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
+                    
+                    <div className="relative z-10 flex items-start justify-between w-full">
+                      <div className="w-9 h-9 rounded-[14px] bg-white/15 backdrop-blur-xl flex items-center justify-center text-lg text-white shadow-sm flex-shrink-0">
+                        💬
                       </div>
-                      <div className="mt-2">
-                        <h3 className="text-white text-[22px] font-black leading-tight">
-                          {channel.tag}
-                        </h3>
-                        <p className="text-white/90 mt-0.5 font-bold text-[13px]">
-                          {channel.name}
-                        </p>
-
-                        {/* 🔥 Sahi real-time count dikhega yahan 🔥 */}
-                        <div className="text-white/90 text-[11px] mt-1.5 flex items-center gap-1.5 font-bold">
-                          <Users size={13} />
-                          <span className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg text-green-300">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                            {liveCount} Online
-                          </span>
+                      
+                      {liveCount > 0 ? (
+                        <div className="px-2 py-0.5 rounded-full bg-black/30 text-[9px] text-green-300 font-bold flex items-center gap-1.5 uppercase border border-green-400/20 shadow-sm flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
+                          Live
                         </div>
+                      ) : (
+                        <div className="px-2 py-0.5 rounded-full bg-black/10 text-[9px] text-white/50 font-bold flex items-center gap-1 uppercase border border-white/10 flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                          Offline
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative z-10 w-full mt-auto">
+                      <h3 className="text-white text-[22px] font-black leading-none tracking-tight truncate">
+                        {channel.tag}
+                      </h3>
+                      <p className="text-white/90 mt-1.5 font-bold text-[13px] leading-none truncate">
+                        {channel.name}
+                      </p>
+                      
+                      <div className={`text-[11px] mt-2.5 flex items-center gap-1.5 font-medium leading-none ${liveCount > 0 ? "text-green-300 font-bold" : "text-white/60"}`}>
+                        <span className={`w-1.5 h-1.5 flex-shrink-0 rounded-full ${liveCount > 0 ? "bg-green-400 animate-pulse" : "bg-white/30"}`} />
+                        {liveCount} {liveCount === 1 ? "Member" : "Members"} Online
                       </div>
                     </div>
                   </button>
@@ -451,10 +495,8 @@ function CommunityInterface() {
                       {activeChannel.name}
                     </h2>
 
-                    {/* 🔥 TOP BAR mein real-time active chatting members count 🔥 */}
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      {liveCounts[activeChannel.name] || 0} currently active
+                    <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 font-medium">
+                      {liveCounts[activeChannel.name] || 0} members currently online
                     </p>
                   </div>
                 </div>
@@ -505,6 +547,13 @@ function CommunityInterface() {
                             </span>
                           </div>
 
+                          {/* 🔥 RENDER UPLOADED IMAGE IF IT EXISTS 🔥 */}
+                          {msg.image && (
+                            <div className="mt-2 mb-3">
+                              <img src={msg.image} alt="attached" className="max-w-[250px] md:max-w-xs rounded-[16px] border border-gray-200 dark:border-slate-700 shadow-sm object-cover" />
+                            </div>
+                          )}
+
                           {editingMsgId === msgId ? (
                             <div className="mt-2 flex items-center gap-2">
                               <input
@@ -527,9 +576,12 @@ function CommunityInterface() {
                               </button>
                             </div>
                           ) : (
-                            <div className="bg-white dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm px-5 py-3.5 shadow-sm text-sm leading-relaxed text-gray-800 dark:text-white/90 break-words transition-colors">
-                              {msg.text}
-                            </div>
+                            // Render text bubble only if text exists
+                            msg.text && (
+                              <div className="bg-white dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700/50 rounded-[20px] rounded-tl-sm px-5 py-3.5 shadow-sm text-sm leading-relaxed text-gray-800 dark:text-white/90 break-words transition-colors inline-block">
+                                {msg.text}
+                              </div>
+                            )
                           )}
 
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-white/40 font-medium">
@@ -587,26 +639,51 @@ function CommunityInterface() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* FIXED MESSAGE INPUT AREA */}
+              {/* ── FIXED MESSAGE INPUT AREA (WITH IMAGE PREVIEW) ── */}
               <div className="w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-4 py-3 flex-shrink-0 mb-20 z-10 border-t border-gray-200/80 dark:border-slate-800 transition-colors">
-                <div className="max-w-4xl mx-auto flex items-center gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                  <button className="w-10 h-10 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-xl text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700">
-                    +
-                  </button>
-                  <input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder={`Message ${activeChannel.name} Community...`}
-                    className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-white/30 text-gray-900 dark:text-white px-2"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                    className="px-5 py-2.5 rounded-[14px] bg-accent hover:opacity-90 transition font-bold shadow-md shadow-accent/20 disabled:opacity-50 text-white text-sm"
-                  >
-                    Send
-                  </button>
+                <div className="max-w-4xl mx-auto flex flex-col gap-2">
+                  
+                  {/* 🔥 IMAGE PREVIEW BOX 🔥 */}
+                  <AnimatePresence>
+                    {imagePreview && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="relative w-max inline-block mb-1">
+                        <img src={imagePreview} alt="preview" className="h-20 w-auto rounded-lg border-2 border-accent object-cover shadow-sm" />
+                        <button onClick={handleRemoveImage} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition shadow-md border-2 border-white dark:border-slate-900">
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
+                    
+                    {/* 🔥 HIDDEN FILE INPUT 🔥 */}
+                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
+
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-10 h-10 flex-shrink-0 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700 active:scale-95"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    
+                    <input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                      disabled={isUploading}
+                      placeholder={`Message ${activeChannel.name} Community...`}
+                      className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-white/30 text-gray-900 dark:text-white px-2 disabled:opacity-50"
+                    />
+                    
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={(!newMessage.trim() && !selectedImage) || isUploading}
+                      className="px-5 py-2.5 rounded-[14px] bg-accent hover:opacity-90 transition font-bold shadow-md shadow-accent/20 disabled:opacity-50 text-white text-sm flex items-center gap-2"
+                    >
+                      {isUploading ? <Loader2 size={16} className="animate-spin" /> : "Send"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
