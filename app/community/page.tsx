@@ -15,7 +15,8 @@ import {
   Check,
   ArrowLeft,
   Zap,
-  Loader2, // 🔥 Added loader for image uploading state
+  Loader2, 
+  Presentation // 🔥 Added loader for image uploading state
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -80,6 +81,13 @@ function CommunityInterface() {
 
   const [inviteCopied, setInviteCopied] = useState(false);
   const [liveCounts, setLiveCounts] = useState<{ [key: string]: number }>({});
+
+  const [boardComingSoon, setBoardComingSoon] = useState(false);
+
+  const handleBoardClick = () => {
+    setBoardComingSoon(true);
+    setTimeout(() => setBoardComingSoon(false), 3000); // 3 second baad wapas normal
+  };
 
   // 🔥 IMAGE UPLOAD STATES 🔥
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -523,6 +531,24 @@ function CommunityInterface() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
+                  
+                  {/* 🔥 NAYA COLLAB BOARD TEASER BUTTON 🔥 */}
+                  <button
+                    onClick={handleBoardClick}
+                    className="hidden md:flex items-center gap-2 px-4 py-2 rounded-[14px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all text-xs font-bold border border-indigo-200 dark:border-indigo-500/20 active:scale-95"
+                  >
+                    {boardComingSoon ? (
+                      <span className="text-rose-500 dark:text-rose-400 animate-pulse">
+                        🚀 Work in Progress!
+                      </span>
+                    ) : (
+                      <>
+                        <Presentation size={14} /> Collab Board
+                      </>
+                    )}
+                  </button>
+
+                  {/* PURANA INVITE BUTTON */}
                   <button
                     onClick={handleInviteClick}
                     className="px-5 py-2 rounded-[14px] bg-accent hover:opacity-90 transition-all text-xs font-bold shadow-md shadow-accent/20 text-white flex items-center gap-2 active:scale-95"
