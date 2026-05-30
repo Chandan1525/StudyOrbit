@@ -11,14 +11,14 @@ import {
   Settings, ArrowLeft, Grid3X3, FolderGit2, QrCode, MapPin, Link2, 
   Heart, Star, ExternalLink, MoreVertical, Users, BookOpen, ChevronRight, 
   Home, Search, Compass, MessageCircle, User, Bell, Zap, PlusSquare, 
-  Share2, Bookmark // 🔥 Added Bookmark here
+  Share2, Bookmark, X
 } from "lucide-react";
 
 // ── Static Fallback Data ──────────────────────────────────────────────────
 const FALLBACK_USER = {
   name: "Student",
   username: "student",
-  avatar: "U",
+  avatar: "",
   avatarGradient: "linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899)",
   coverGradient: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)",
   location: "Earth",
@@ -27,13 +27,6 @@ const FALLBACK_USER = {
   followers: 0,
   following: 0,
   skills: [],
-  network: [
-    { initials: "AV", gradient: "linear-gradient(135deg,#ec4899,#f97316)" },
-    { initials: "RK", gradient: "linear-gradient(135deg,#3b82f6,#06b6d4)" },
-    { initials: "PS", gradient: "linear-gradient(135deg,#f59e0b,#ef4444)" },
-    { initials: "MK", gradient: "linear-gradient(135deg,#8b5cf6,#ec4899)" },
-    { initials: "AN", gradient: "linear-gradient(135deg,#10b981,#3b82f6)" },
-  ],
 };
 
 const PROJECTS = [
@@ -71,6 +64,19 @@ const PROJECTS = [
     live: "#",
   },
 ];
+
+// ── Dynamic Gradient Generator ─────────────────────────────────────────────
+const generateGradient = (name: string) => {
+  const colors = [
+    "linear-gradient(135deg,#ec4899,#f97316)",
+    "linear-gradient(135deg,#3b82f6,#06b6d4)",
+    "linear-gradient(135deg,#f59e0b,#ef4444)",
+    "linear-gradient(135deg,#8b5cf6,#ec4899)",
+    "linear-gradient(135deg,#10b981,#3b82f6)",
+  ];
+  const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return colors[hash % colors.length];
+};
 
 // ── QR Code SVG ────────────────────────────────────────────────────────────
 function QRCodeSVG() {
@@ -234,19 +240,17 @@ function PostCell({ post }: { post: any }) {
 export default function ProfilePage() {
   const router = useRouter();
 
-  // 🔥 ADDED "saved" to activeTab states
-  const [activeTab, setActiveTab] = useState<"posts" | "projects" | "qr" | "saved">(
-    "posts",
-  );
-  const [following, setFollowing] = useState(false);
-  const [navTab, setNavTab] = useState("profile");
-
+  const [activeTab, setActiveTab] = useState<"posts" | "projects" | "qr" | "saved">("posts");
   const [profileUser, setProfileUser] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
-  const [savedPosts, setSavedPosts] = useState<any[]>([]); // 🔥 NEW STATE for Saved Posts
+  const [savedPosts, setSavedPosts] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [showAllPosts, setShowAllPosts] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // 🔥 NETWORK MODAL STATES
+  const [showNetworkModal, setShowNetworkModal] = useState(false);
+  const [networkTab, setNetworkTab] = useState<"followers" | "following">("followers");
 
   useEffect(() => {
     const fetchMyProfileAndPosts = async () => {
@@ -261,7 +265,7 @@ export default function ProfilePage() {
         const userId = me.id || me._id;
         const token = localStorage.getItem("token");
 
-        // 1. Fetch FRESH Profile Data
+        // 1. Fetch FRESH Profile Data (Assuming followers/following are populated arrays of objects)
         const profileRes = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
         );
@@ -290,7 +294,7 @@ export default function ProfilePage() {
             console.error("Error fetching notification count", err);
           }
 
-          // 🔥 4. Fetch User's SAVED Posts
+          // 4. Fetch User's SAVED Posts
           try {
             const savedRes = await axios.get(
               `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/saved`,
@@ -311,6 +315,18 @@ export default function ProfilePage() {
     fetchMyProfileAndPosts();
   }, [router]);
 
+  // Derived user values
+  const actualFollowers = profileUser?.followers || [];
+  const actualFollowing = profileUser?.following || [];
+
+  const networkPreview = actualFollowers.slice(0, 5).map((f: any) => ({
+    id: f._id || f.id,
+    name: f.name || "User",
+    avatar: f.avatar,
+    initials: (f.name || "U").substring(0, 2).toUpperCase(),
+    gradient: generateGradient(f.name || "User")
+  }));
+
   const USER = {
     ...FALLBACK_USER,
     name: profileUser?.name || FALLBACK_USER.name,
@@ -326,8 +342,8 @@ export default function ProfilePage() {
       ? profileUser.skills
       : FALLBACK_USER.skills,
     posts: (posts?.length || 0).toString(),
-    followers: profileUser?.followers?.length || 0,
-    following: profileUser?.following || 0,
+    followers: actualFollowers.length,
+    following: actualFollowing.length,
   };
 
   const getSkillColors = (index: number) => {
@@ -342,13 +358,40 @@ export default function ProfilePage() {
     return colors[index % colors.length];
   };
 
-  const NAV = [
-    { id: "home", icon: Home, label: "Home" },
-    { id: "search", icon: Search, label: "Search" },
-    { id: "explore", icon: Compass, label: "Explore" },
-    { id: "chats", icon: MessageCircle, label: "Chats" },
-    { id: "profile", icon: User, label: "Profile" },
-  ];
+  // 🔥 NETWORK LIST RENDERER (For Modal)
+  const renderNetworkList = (list: any[]) => {
+    if (!list || list.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-slate-500">
+          <Users size={40} className="mb-3 opacity-50" />
+          <p className="text-sm font-bold">No users found</p>
+        </div>
+      );
+    }
+    return list.map((user: any) => (
+      <div 
+        key={user._id || user.id}
+        onClick={() => router.push(`/profile/${user._id || user.id}`)}
+        className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+      >
+        <div 
+          className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold"
+          style={{ background: user.avatar ? "transparent" : generateGradient(user.name || "U") }}
+        >
+          {user.avatar ? (
+            <img src={user.avatar} className="w-full h-full object-cover rounded-full" alt="avatar" />
+          ) : (
+            (user.name || "U").substring(0, 2).toUpperCase()
+          )}
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
+          <p className="text-xs font-medium text-accent truncate">@{user.username}</p>
+        </div>
+        <ChevronRight size={16} className="text-gray-300 dark:text-slate-600" />
+      </div>
+    ));
+  };
 
   if (loading) {
     return (
@@ -518,13 +561,14 @@ export default function ProfilePage() {
         {/* ── Stats ── */}
         <div className="flex items-center justify-center gap-0 mb-5 mx-5">
           {[
-            { label: "Posts", value: USER.posts },
-            { label: "Followers", value: USER.followers },
-            { label: "Following", value: USER.following },
+            { label: "Posts", value: USER.posts, action: null },
+            { label: "Followers", value: USER.followers, action: () => { setNetworkTab("followers"); setShowNetworkModal(true); } },
+            { label: "Following", value: USER.following, action: () => { setNetworkTab("following"); setShowNetworkModal(true); } },
           ].map((s, i) => (
             <div
               key={s.label}
-              className={`flex-1 text-center py-3 ${i !== 2 ? "border-r border-gray-100 dark:border-slate-800" : ""} bg-white dark:bg-slate-900 transition-colors duration-300`}
+              onClick={s.action || undefined}
+              className={`flex-1 text-center py-3 ${i !== 2 ? "border-r border-gray-100 dark:border-slate-800" : ""} bg-white dark:bg-slate-900 transition-colors duration-300 ${s.action ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/80" : ""}`}
               style={{
                 borderRadius: i === 0 ? "16px 0 0 16px" : i === 2 ? "0 16px 16px 0" : "0",
                 boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
@@ -602,7 +646,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* ── Network ── */}
+        {/* ── Dynamic Network Section ── */}
         <div className="px-5 mb-5">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-sm border border-gray-50 dark:border-slate-800 transition-colors">
             <div className="flex items-center justify-between mb-3">
@@ -614,24 +658,39 @@ export default function ProfilePage() {
                   Network
                 </span>
               </div>
-              <button className="text-xs font-semibold flex items-center gap-0.5 text-accent transition-colors">
+              <button 
+                onClick={() => setShowNetworkModal(true)}
+                className="text-xs font-semibold flex items-center gap-0.5 text-accent transition-colors p-1 hover:opacity-80"
+              >
                 See all <ChevronRight size={12} />
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              {USER.network.map((n: any, i: number) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ y: -3, scale: 1.1 }}
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-slate-900 shadow-sm cursor-pointer transition-colors"
-                  style={{ background: n.gradient, marginLeft: i > 0 ? -8 : 0, zIndex: USER.network.length - i }}
-                >
-                  {n.initials}
-                </motion.div>
-              ))}
-              <div className="ml-2 text-xs text-gray-500 dark:text-slate-500 font-medium transition-colors">
-                +{Math.max(0, parseInt(USER.following || "0") - USER.network.length)} more
-              </div>
+            
+            <div 
+              onClick={() => setShowNetworkModal(true)}
+              className="flex items-center gap-2 cursor-pointer group"
+            >
+              {networkPreview.length > 0 ? (
+                <>
+                  {networkPreview.map((n: any, i: number) => (
+                    <motion.div
+                      key={n.id}
+                      whileHover={{ y: -3, scale: 1.1 }}
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-slate-900 shadow-sm transition-colors overflow-hidden"
+                      style={{ background: n.avatar ? "transparent" : n.gradient, marginLeft: i > 0 ? -8 : 0, zIndex: networkPreview.length - i }}
+                    >
+                      {n.avatar ? <img src={n.avatar} className="w-full h-full object-cover" alt="av" /> : n.initials}
+                    </motion.div>
+                  ))}
+                  {actualFollowers.length > 5 && (
+                    <div className="ml-2 text-xs text-gray-500 dark:text-slate-500 font-medium transition-colors group-hover:text-accent">
+                      +{actualFollowers.length - 5} more
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-gray-400 dark:text-slate-500 font-medium">Build your network to see connections here.</p>
+              )}
             </div>
           </div>
         </div>
@@ -641,7 +700,7 @@ export default function ProfilePage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-1 flex shadow-sm border border-gray-50 dark:border-slate-800 transition-colors">
             {[
               { id: "posts", icon: Grid3X3, label: "Posts" },
-              { id: "saved", icon: Bookmark, label: "Saved" }, // 🔥 Added Saved Tab
+              { id: "saved", icon: Bookmark, label: "Saved" },
               { id: "projects", icon: FolderGit2, label: "Projects" },
               { id: "qr", icon: QrCode, label: "QR Code" },
             ].map((tab) => (
@@ -895,6 +954,66 @@ export default function ProfilePage() {
         </AnimatePresence>
         <div className="h-6" />
       </div>
+
+      {/* ── 🔥 NEW: NETWORK MODAL 🔥 ── */}
+      <AnimatePresence>
+        {showNetworkModal && (
+          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4">
+            <motion.div 
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="w-full md:max-w-md h-[75vh] md:h-[600px] bg-white dark:bg-slate-900 rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">Network</h2>
+                <button 
+                  onClick={() => setShowNetworkModal(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Tabs */}
+              <div className="flex border-b border-gray-100 dark:border-slate-800">
+                <button 
+                  onClick={() => setNetworkTab("followers")}
+                  className={`flex-1 py-3 text-sm font-bold transition-colors border-b-2 ${networkTab === "followers" ? "border-accent text-accent" : "border-transparent text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50"}`}
+                >
+                  Followers ({actualFollowers.length})
+                </button>
+                <button 
+                  onClick={() => setNetworkTab("following")}
+                  className={`flex-1 py-3 text-sm font-bold transition-colors border-b-2 ${networkTab === "following" ? "border-accent text-accent" : "border-transparent text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50"}`}
+                >
+                  Following ({actualFollowing.length})
+                </button>
+              </div>
+
+              {/* Modal List */}
+              <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={networkTab}
+                    initial={{ opacity: 0, x: networkTab === "followers" ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: networkTab === "followers" ? 20 : -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {networkTab === "followers" 
+                      ? renderNetworkList(actualFollowers) 
+                      : renderNetworkList(actualFollowing)
+                    }
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <BottomNav />
     </div>

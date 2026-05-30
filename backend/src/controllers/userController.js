@@ -64,7 +64,12 @@ export const getUsersForSidebar = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    const user = await User.findById(userId).select("-password");
+    
+    // 🔥 YAHAN POPULATE ADD KIYA HAI 🔥
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate("followers", "name username avatar")
+      .populate("following", "name username avatar");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -83,7 +88,8 @@ export const getUserProfile = async (req, res) => {
         linkedin: user.linkedin,
         coverGradient: user.coverGradient,
         followers: user.followers || [],
-        following: user.following?.length || 0,
+        // 🔥 PEHLE YAHAN SIRF LENGTH THI, AB POORA ARRAY BHEJ RAHE HAIN 🔥
+        following: user.following || [], 
       }
     });
   } catch (error) {
