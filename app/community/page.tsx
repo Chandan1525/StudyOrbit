@@ -84,6 +84,9 @@ function CommunityInterface() {
   const [editMsgText, setEditMsgText] = useState("");
 
   const [inviteCopied, setInviteCopied] = useState(false);
+  
+  // 🔥 NAYA STATE FOR LIVE COUNTS
+  const [liveCounts, setLiveCounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -161,14 +164,24 @@ function CommunityInterface() {
       }
     };
 
+    // 🔥 LIVE COUNT RECEIVER
+    const handleActiveCount = (data: any) => {
+       setLiveCounts((prev) => ({
+         ...prev,
+         [data.channel]: data.count
+       }));
+    };
+
     socket.on("receive_community_message", handleReceive);
     socket.on("message_edited", handleEdit);
     socket.on("message_deleted", handleDelete);
+    socket.on("community_active_count", handleActiveCount);
 
     return () => {
       socket.off("receive_community_message", handleReceive);
       socket.off("message_edited", handleEdit);
       socket.off("message_deleted", handleDelete);
+      socket.off("community_active_count", handleActiveCount);
     };
   }, [activeChannel?.name]);
 
@@ -353,6 +366,8 @@ function CommunityInterface() {
             {filteredChannels.length > 0 ? (
               filteredChannels.map((channel, index) => {
                 const isActive = activeChannel?.name === channel.name;
+                const liveCount = liveCounts[channel.name] || 0;
+                
                 return (
                   <button
                     key={index}
@@ -382,8 +397,12 @@ function CommunityInterface() {
                         <p className="text-white/90 mt-0.5 font-bold text-[13px]">
                           {channel.name}
                         </p>
-                        <div className="text-white/70 text-[11px] mt-1 flex items-center gap-1 font-medium">
-                          <User size={11} /> {channel.members}
+                        <div className="text-white/70 text-[11px] mt-1 flex items-center gap-2 font-medium">
+                          <span className="flex items-center gap-1"><User size={11} /> {channel.members} total</span>
+                          {/* 🔥 NAYI LINE: LIVE ACTIVE USERS 🔥 */}
+                          {liveCount > 0 && (
+                            <span className="flex items-center gap-1 text-green-300 font-bold border-l pl-2 border-white/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> {liveCount} chatting</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -417,12 +436,18 @@ function CommunityInterface() {
                     <ArrowLeft size={20} />
                   </button>
                   <div className="truncate">
-                    <h2 className="text-xl md:text-2xl font-black truncate text-gray-900 dark:text-white">
-                      {activeChannel.name} Community
+                    <h2 className="text-xl md:text-2xl font-black truncate text-gray-900 dark:text-white flex items-center gap-2">
+                      {activeChannel.name}
+                      {/* 🔥 NAYI LINE: Top bar me live indicator */}
+                      {liveCounts[activeChannel.name] > 0 && (
+                         <span className="px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-[9px] text-green-600 dark:text-green-400 font-bold flex items-center gap-1 uppercase border border-green-200 dark:border-green-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                          {liveCounts[activeChannel.name]} Live
+                        </span>
+                      )}
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 font-medium">
-                      {activeChannel.members.toLocaleString()} members • Chat
-                      Live
+                      {activeChannel.members.toLocaleString()} members
                     </p>
                   </div>
                 </div>
