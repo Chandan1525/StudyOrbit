@@ -456,7 +456,7 @@ function ChatInterface() {
                 const safeUserId = user._id || user.id;
                 
                 const isActive = activeChat?._id === safeUserId || activeChat?.id === safeUserId;
-                const isUserOnline = onlineUsers.includes(safeUserId);
+                const isUserOnline = onlineUsers.includes(safeUserId) && user.showOnlineStatus !== false;
                 
                 // Check if this specific user has unread messages
                 const hasUnread = unreadChats[safeUserId];
@@ -577,7 +577,8 @@ function ChatInterface() {
                       }
                       className="w-10 h-10 md:w-12 md:h-12 rounded-[14px] object-cover shadow-sm border border-gray-100 dark:border-slate-700"
                     />
-                    {onlineUsers.includes(activeChat._id) && (
+                    {/* 🔥 HEADER AVATAR PRIVACY CHECK 🔥 */}
+                    {onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false && (
                       <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
                     )}
                   </div>
@@ -588,10 +589,12 @@ function ChatInterface() {
                     >
                       {activeChat.name || activeChat.username}
                     </h2>
+                    
+                    {/* 🔥 HEADER TEXT PRIVACY CHECK 🔥 */}
                     <p
-                      className={`${onlineUsers.includes(activeChat._id) ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
+                      className={`${onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
                     >
-                      {onlineUsers.includes(activeChat._id)
+                      {onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false
                         ? "Online"
                         : "Offline"}
                     </p>

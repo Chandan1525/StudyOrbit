@@ -1,6 +1,6 @@
 import express from 'express';
 // 🔥 Import changePassword 🔥
-import { getUsersForSidebar, getUserProfile, toggleFollow, addProject, editProject, deleteProject, changePassword } from '../controllers/userController.js'; 
+import { getUsersForSidebar, getUserProfile, toggleFollow, addProject, editProject, deleteProject, changePassword } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { updateProfile } from "../controllers/authController.js";
 import User from "../models/User.js";
@@ -12,7 +12,7 @@ const router = express.Router();
 // 🔥 NEW ROUTE: CHANGE PASSWORD 🔥
 router.put('/change-password', protect, changePassword);
 
-router.get('/sidebar', protect, getUsersForSidebar); 
+router.get('/sidebar', protect, getUsersForSidebar);
 router.put("/update-profile", updateProfile);
 router.get('/profile/:id', getUserProfile);
 router.put('/follow/:id', protect, toggleFollow);
@@ -30,7 +30,7 @@ router.get("/sessions", protect, async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const currentSessionId = decoded.sessionId; 
+    const currentSessionId = decoded.sessionId;
 
     const user = await User.findById(req.user.id || req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -49,7 +49,7 @@ router.get("/sessions", protect, async (req, res) => {
         id: s.sessionId,
         name: deviceName,
         time: new Date(s.loginTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-        active: s.sessionId === currentSessionId, 
+        active: s.sessionId === currentSessionId,
       };
     });
 
@@ -73,10 +73,11 @@ router.delete("/sessions/:sessionId", protect, async (req, res) => {
   }
 });
 
-// ── FOR EXPLORE/SEARCH PAGE ──
+// ── FOR EXPLORE/SEARCH PAGE (UPDATED WITH PRIVACY) ──
 router.get("/", async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    // 🔥 isPublic: { $ne: false } ka matlab hai ki jo log Private hain, unko list mein mat dikhao
+    const users = await User.find({ isPublic: { $ne: false } }).select("-password");
     res.json({ users });
   } catch (error) {
     console.error("💥 Error fetching users:", error);
