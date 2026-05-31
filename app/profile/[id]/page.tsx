@@ -8,45 +8,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, MapPin, Link2, Settings, 
   MoreVertical, BookOpen, Users, Grid, 
-  Folder, QrCode, Heart, MessageSquare, Share2, Bookmark, CheckCircle2, FolderGit2, Star, ExternalLink, X, ChevronRight
+  QrCode, Heart, MessageSquare, Share2, Bookmark, CheckCircle2, FolderGit2, Star, ExternalLink, X, ChevronRight
 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react"; // 🔥 QR CODE LIBRARY IMPORT KIYI HAI 🔥
 
-// ── Static Fallback Data for Projects ──
-const PROJECTS = [
-  {
-    id: 1,
-    name: "DevHive Forum",
-    desc: "Real-time Q&A platform for developers with Socket.io chat, upvoting, and code highlighting.",
-    tech: ["React", "Express", "Socket.io", "MongoDB"],
-    stars: 142,
-    gradient: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-    icon: "💬",
-    github: "#",
-    live: "#",
-  },
-  {
-    id: 2,
-    name: "ML Notes Classifier",
-    desc: "NLP-powered tool that auto-tags and organizes study notes using Python and scikit-learn.",
-    tech: ["Python", "Flask", "NLTK", "scikit-learn"],
-    stars: 89,
-    gradient: "linear-gradient(135deg,#f59e0b,#f97316)",
-    icon: "🧠",
-    github: "#",
-    live: "#",
-  },
-  {
-    id: 3,
-    name: "StudyOrbit",
-    desc: "A growth-oriented student platform for learning, collaborating, and discovering opportunities.",
-    tech: ["Next.js", "Node.js", "MongoDB", "Tailwind"],
-    stars: 318,
-    gradient: "linear-gradient(135deg,#10b981,#059669)",
-    icon: "🚀",
-    github: "#",
-    live: "#",
-  },
-];
+// ── Custom Github & Linkedin Icons ──
+const GithubIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+    <path d="M9 18c-4.51 2-5-2-7-2"></path>
+  </svg>
+);
+
+const LinkedinIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+    <rect x="2" y="9" width="4" height="12"></rect>
+    <circle cx="4" cy="4" r="2"></circle>
+  </svg>
+);
 
 // ── Dynamic Gradient Generator ──
 const generateGradient = (name: string) => {
@@ -60,58 +40,6 @@ const generateGradient = (name: string) => {
   const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
-
-// ── QR Code SVG ──
-function QRCodeSVG() {
-  const cells = [
-    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0],
-    [0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0],
-    [0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1],
-    [1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1],
-    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0],
-    [1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1],
-  ];
-  const size = 21;
-  const cell = 10;
-  return (
-    <svg
-      width={size * cell}
-      height={size * cell}
-      viewBox={`0 0 ${size * cell} ${size * cell}`}
-    >
-      {cells.map((row, r) =>
-        row.map((filled, c) =>
-          filled ? (
-            <rect
-              key={`${r}-${c}`}
-              x={c * cell + 1}
-              y={r * cell + 1}
-              width={cell - 2}
-              height={cell - 2}
-              rx="1.5"
-              fill="#1a1a2e"
-            />
-          ) : null,
-        ),
-      )}
-    </svg>
-  );
-}
 
 export default function DynamicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -128,7 +56,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
   const [followersCount, setFollowersCount] = useState(0);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
-  // 🔥 NETWORK MODAL STATES
+  // NETWORK MODAL STATES
   const [showNetworkModal, setShowNetworkModal] = useState(false);
   const [networkTab, setNetworkTab] = useState<"followers" | "following">("followers");
 
@@ -210,7 +138,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
     router.push(`/messages?chat=${userId}`);
   };
 
-  // 🔥 NETWORK LIST RENDERER (For Modal)
+  // NETWORK LIST RENDERER (For Modal)
   const renderNetworkList = (list: any[]) => {
     if (!list || list.length === 0) {
       return (
@@ -259,7 +187,6 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
   const targetUserId = profileData?.id || profileData?._id;
   const isOwner = currentUserId && targetUserId && currentUserId === targetUserId;
 
-  // 🔥 EXTRACT FOLLOWERS/FOLLOWING FOR DYNAMIC PREVIEW
   const actualFollowers = profileData?.followers || [];
   const actualFollowing = profileData?.following || [];
 
@@ -305,9 +232,26 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
         <h1 className="text-2xl font-black text-gray-900 dark:text-white transition-colors">{profileData.name}</h1>
         <p className="text-sm font-medium text-accent transition-colors">@{profileData.username}</p>
         
-        <div className="flex items-center justify-center gap-3 mt-2 flex-wrap text-xs text-gray-500 dark:text-slate-400 transition-colors">
-          <span className="flex items-center gap-1"><MapPin size={12}/> {profileData.location || "Earth"}</span>
-          <span className="flex items-center gap-1 text-accent transition-colors"><Link2 size={12}/> {profileData.website ? profileData.website.replace(/^https?:\/\//, '') : "studyorbit.com"}</span>
+        {/* 🔥 FIX 1: DYNAMIC SOCIAL LINKS 🔥 */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mt-3 text-xs text-gray-500 dark:text-slate-400 transition-colors">
+          {profileData.location && (
+            <span className="flex items-center gap-1"><MapPin size={12}/> {profileData.location}</span>
+          )}
+          {profileData.website && (
+            <a href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-accent hover:underline transition-colors">
+              <Link2 size={12}/> {profileData.website.replace(/^https?:\/\//, '')}
+            </a>
+          )}
+          {profileData.github && (
+            <a href={profileData.github.startsWith('http') ? profileData.github : `https://${profileData.github}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-accent hover:underline transition-colors">
+              <GithubIcon size={12} /> GitHub
+            </a>
+          )}
+          {profileData.linkedin && (
+            <a href={profileData.linkedin.startsWith('http') ? profileData.linkedin : `https://${profileData.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-accent hover:underline transition-colors">
+              <LinkedinIcon size={12} /> LinkedIn
+            </a>
+          )}
         </div>
       </div>
 
@@ -479,7 +423,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
             </div>
           )}
 
-          {/* PROJECTS */}
+          {/* 🔥 FIX 2: DYNAMIC PROJECTS 🔥 */}
           {activeTab === 'projects' && (
             <AnimatePresence mode="wait">
               <motion.div
@@ -490,88 +434,90 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
                 transition={{ duration: 0.25 }}
                 className="flex flex-col gap-4"
               >
-                {PROJECTS.map((p, i) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-800 transition-colors"
-                  >
-                    <div
-                      className="h-1.5 w-full"
-                      style={{ background: p.gradient }}
-                    />
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                            style={{ background: p.gradient }}
-                          >
-                            {p.icon}
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-black text-gray-900 dark:text-white transition-colors">
-                              {p.name}
-                            </h3>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <Star
-                                size={10}
-                                className="text-amber-400 fill-amber-400"
-                              />
-                              <span className="text-xs text-gray-500 dark:text-slate-400 font-medium transition-colors">
-                                {p.stars} stars
-                              </span>
+                {profileData?.projects && profileData.projects.length > 0 ? (
+                  profileData.projects.map((p: any, i: number) => (
+                    <motion.div
+                      key={p._id || i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-800 transition-colors"
+                    >
+                      <div
+                        className="h-1.5 w-full"
+                        style={{ background: p.gradient || "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+                      />
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+                              style={{ background: p.gradient || "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+                            >
+                              {p.icon || "🚀"}
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-black text-gray-900 dark:text-white transition-colors">
+                                {p.name}
+                              </h3>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Star size={10} className="text-amber-400 fill-amber-400" />
+                                <span className="text-xs text-gray-500 dark:text-slate-400 font-medium transition-colors">
+                                  {p.stars || 0} stars
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex gap-2">
+                            {p.github && (
+                              <motion.a
+                                href={p.github}
+                                target="_blank"
+                                whileTap={{ scale: 0.9 }}
+                                className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center transition-colors"
+                              >
+                                <GithubIcon size={14} className="text-gray-600 dark:text-slate-300" />
+                              </motion.a>
+                            )}
+                            {p.live && (
+                              <motion.a
+                                href={p.live}
+                                target="_blank"
+                                whileTap={{ scale: 0.9 }}
+                                className="w-8 h-8 rounded-xl flex items-center justify-center bg-accent transition-colors"
+                              >
+                                <ExternalLink size={14} className="text-white" />
+                              </motion.a>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <motion.a
-                            href={p.github}
-                            whileTap={{ scale: 0.9 }}
-                            className="w-8 h-8 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center transition-colors"
-                          >
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              className="text-gray-600 dark:text-slate-300"
+                        <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mb-3 transition-colors">
+                          {p.desc}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.tech && (Array.isArray(p.tech) ? p.tech : p.tech.split(',')).map((t: string) => (
+                            <span
+                              key={t}
+                              className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-accent/10 text-accent transition-colors"
                             >
-                              <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836a9.59 9.59 0 0 1 2.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-                            </svg>
-                          </motion.a>
-                          <motion.a
-                            href={p.live}
-                            whileTap={{ scale: 0.9 }}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center bg-accent transition-colors"
-                          >
-                            <ExternalLink size={14} className="text-white" />
-                          </motion.a>
+                              {t.trim()}
+                            </span>
+                          ))}
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mb-3 transition-colors">
-                        {p.desc}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.tech.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-accent/10 text-accent transition-colors"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 text-center border border-gray-100 dark:border-slate-800 shadow-sm transition-colors">
+                    <div className="text-3xl mb-2">📁</div>
+                    <h3 className="font-bold text-gray-700 dark:text-slate-300 transition-colors">No projects added yet</h3>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           )}
 
-          {/* QR CODE */}
+          {/* 🔥 FIX 3: DYNAMIC QR CODE 🔥 */}
           {activeTab === 'qr' && (
             <motion.div
               key="qr"
@@ -591,12 +537,23 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
                 </div>
                 
                 <div className="inline-block p-[3px] rounded-3xl mb-4 bg-accent transition-colors">
-                  <div className="bg-white rounded-[22px] p-4">
-                    <QRCodeSVG />
+                  <div className="bg-white rounded-[22px] p-4 flex items-center justify-center">
+                    <QRCodeCanvas
+                      value={typeof window !== "undefined" ? `${window.location.origin}/profile/${profileData?._id || userId}` : `https://studyorbit.com/profile/${profileData?._id || userId}`}
+                      size={200}
+                      bgColor="#ffffff"
+                      fgColor="#1a1a2e"
+                      level="H"
+                      imageSettings={{
+                        src: "/logo.png",
+                        height: 36,
+                        width: 36,
+                        excavate: true,
+                      }}
+                    />
                   </div>
                 </div>
 
-                {/* ── FIXED CLICKABLE LINK ── */}
                 <div className="mb-4">
                   <p className="text-xs text-gray-400 dark:text-slate-500 mb-1 transition-colors">
                     Scan or click to visit profile
@@ -615,7 +572,7 @@ export default function DynamicProfilePage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* ── 🔥 NEW: NETWORK MODAL 🔥 ── */}
+      {/* ── NEW: NETWORK MODAL ── */}
       <AnimatePresence>
         {showNetworkModal && (
           <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4">
