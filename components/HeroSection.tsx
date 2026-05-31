@@ -203,7 +203,8 @@ export default function HeroSection() {
       {/* Hero Content */}
       <motion.div
         style={{ opacity: heroOpacity, y: heroY }}
-        className="relative z-10 flex flex-col items-center justify-center text-center px-4 flex-1 pb-16 w-full"
+        // 🔥 FIX: 'justify-center' hatakar 'justify-start' kiya aur pt-[120px] lagaya 🔥
+        className="relative z-10 flex flex-col items-center justify-start pt-[120px] md:pt-[160px] text-center px-4 flex-1 pb-16 w-full"
       >
         <motion.div
           initial={{ opacity: 0, y: 80 }}
