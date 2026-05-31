@@ -36,6 +36,15 @@ const userSchema = new mongoose.Schema(
     isOtpVerified: { type: Boolean, default: false },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    // models/User.js ke andar apna schema check karo aur ye add karo:
+    isPublic: {
+      type: Boolean,
+      default: true // Default sabka profile public hoga
+    },
+    showOnlineStatus: {
+      type: Boolean,
+      default: true // Default online dikhega
+    },
 
     // 🔥 NEW: Saved Posts Array (To store bookmarked posts)
     savedPosts: [{

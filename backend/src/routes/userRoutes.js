@@ -5,6 +5,7 @@ import { protect } from '../middleware/authMiddleware.js';
 import { updateProfile } from "../controllers/authController.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import { updatePrivacySettings, deleteAccount } from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -20,6 +21,9 @@ router.put('/follow/:id', protect, toggleFollow);
 router.post('/project', protect, addProject);
 router.put('/project/:projectId', protect, editProject);
 router.delete('/project/:projectId', protect, deleteProject);
+
+router.put('/privacy', protect, updatePrivacySettings);
+router.delete('/account', protect, deleteAccount);
 
 // ── CONNECTED DEVICES (SESSIONS) KE LIYE ──
 router.get("/sessions", protect, async (req, res) => {

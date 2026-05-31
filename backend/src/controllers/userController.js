@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Notification from "../models/Notification.js";
 import bcrypt from 'bcryptjs'; // 🔥 NAYA IMPORT PASSWORD HASHING KE LIYE 🔥
+import Post from "../models/Post.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -268,5 +269,71 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     console.error("Change Password Error:", error);
     res.status(500).json({ message: "Server error. Please try again later." });
+  }
+};
+
+// 🔥 UPDATE PRIVACY SETTINGS 🔥
+export const updatePrivacySettings = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { isPublic, showOnlineStatus } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Update fields if they are provided in the request
+    if (typeof isPublic === 'boolean') user.isPublic = isPublic;
+    if (typeof showOnlineStatus === 'boolean') user.showOnlineStatus = showOnlineStatus;
+
+    await user.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Privacy settings updated!",
+      isPublic: user.isPublic,
+      showOnlineStatus: user.showOnlineStatus
+    });
+  } catch (error) {
+    console.error("Privacy Update Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 🔥 PERMANENT DELETE ACCOUNT (CASCADE DELETE) 🔥
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+
+    // 1. User ki saari Chat Messages delete karo
+    await Message.deleteMany({ 
+      $or: [{ sender: userId }, { receiver: userId }] 
+    });
+
+    // 2. User ki saari Notifications delete karo
+    await Notification.deleteMany({ 
+      $or: [{ sender: userId }, { recipient: userId }] 
+    });
+
+    // 3. Dusre users ki Following/Followers list se is user ko hatao
+    await User.updateMany(
+      { $or: [{ followers: userId }, { following: userId }] },
+      { $pull: { followers: userId, following: userId } }
+    );
+
+    // 🔥 4. USER KI SAARI POSTS DELETE KARO 🔥
+    // Note: Agar tumhare models/Post.js mein user ki ID 'author' naam se save hoti hai, 
+    // toh isey { author: userId } kar dena. Agar 'user' naam se hoti hai, toh yahi rehne do.
+    await Post.deleteMany({ user: userId }); 
+
+    // 5. Sabse aakhir mein, asli User Document ko delete karo
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Account and all related data permanently deleted." 
+    });
+  } catch (error) {
+    console.error("Delete Account Error:", error);
+    res.status(500).json({ message: "Server error during account deletion." });
   }
 };
