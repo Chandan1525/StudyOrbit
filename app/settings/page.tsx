@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import BottomNav from "@/components/BottomNav"; 
 
-
 import {
   Home,
   Search,
@@ -19,12 +18,10 @@ import {
   Moon,
   Palette,
   Lock,
-  Globe,
   ChevronRight,
   LogOut,
   Smartphone,
   Database,
-  Eye,
   X,
   Check,
   Sun,
@@ -43,32 +40,22 @@ const ACCENT_PALETTE = [
   { name: "Amber Gold", hex: "#f59e0b", light: "#fef3c7" },
 ];
 
-const LANGUAGES = [
-  "English (US)",
-  "English (UK)",
-  "Hindi",
-  "Spanish",
-  "French",
-  "German",
-];
-
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activePanel, setActivePanel] = useState<
-    "none" | "appearance" | "accent" | "language" | "devices" | "storage"
+    "none" | "appearance" | "accent" | "devices" | "storage"
   >("none");
   const [prefs, setPrefs] = useState({
     theme: "light",
     accentColor: "#6366f1",
-    language: "English (US)",
   });
 
   // Dummy states for interactivity
   const [cacheSize, setCacheSize] = useState("42.8 MB");
 
-  // 🔥 UPDATED: Connected Devices States
+  // Connected Devices States
   const [devices, setDevices] = useState<any[]>([]);
   const [isDevicesLoading, setIsDevicesLoading] = useState(false);
 
@@ -121,7 +108,7 @@ export default function SettingsPage() {
     setActivePanel("none");
   };
 
-  // 🔥 NEW: Fetch Devices from Backend
+  // Fetch Devices from Backend
   const fetchDevices = async () => {
     setActivePanel("devices");
     setIsDevicesLoading(true);
@@ -155,7 +142,7 @@ export default function SettingsPage() {
     }
   };
 
-  // 🔥 NEW: Revoke Device from Backend
+  // Revoke Device from Backend
   const handleRevokeDevice = async (
     deviceId: string,
     isCurrentDevice: boolean,
@@ -198,8 +185,7 @@ export default function SettingsPage() {
           icon: Lock,
           label: "Change Password",
           desc: "Update your login password",
-          // 🔥 PEHLE YE THA: route: "/auth/reset-password",
-          route: "/settings/change-password", // 👈 ISE UPDATE KAR DO
+          route: "/settings/change-password",
           color: "#f43f5e",
           bg: "#ffe4e6",
         },
@@ -245,15 +231,6 @@ export default function SettingsPage() {
     {
       title: "Platform",
       items: [
-        {
-          icon: Globe,
-          label: "Language",
-          desc: prefs.language,
-          action: () => setActivePanel("language"),
-          color: "#0284c7",
-          bg: "#e0f2fe",
-        },
-        // 🔥 CHANGED action to fetchDevices here
         {
           icon: Smartphone,
           label: "Connected Devices",
@@ -459,39 +436,6 @@ export default function SettingsPage() {
           </div>
         ))}
 
-        {/* ── Security toggle ── */}
-        <div>
-          <h2 className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 transition-colors">
-            Security
-          </h2>
-          <div className="rounded-3xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 border border-gray-200/60 dark:border-slate-800 transition-colors">
-            <div className="px-4 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <div
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                  style={{ background: "#ffe4e6" }}
-                >
-                  <Eye size={20} className="text-rose-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-800 dark:text-slate-200 transition-colors">
-                    Public Profile
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 transition-colors">
-                    Visible to everyone
-                  </p>
-                </div>
-              </div>
-              <button
-                className="w-12 h-6 rounded-full relative transition-all duration-300 flex items-center px-0.5"
-                style={{ background: ac }}
-              >
-                <div className="w-5 h-5 rounded-full bg-white shadow ml-auto transition-all" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* ── Logout ── */}
         <button
           onClick={handleLogout}
@@ -538,11 +482,9 @@ export default function SettingsPage() {
                     ? "Appearance"
                     : activePanel === "accent"
                       ? "Accent Color"
-                      : activePanel === "language"
-                        ? "Select Language"
-                        : activePanel === "devices"
-                          ? "Connected Devices"
-                          : "Storage & Cache"}
+                      : activePanel === "devices"
+                        ? "Connected Devices"
+                        : "Storage & Cache"}
                 </h3>
                 <button
                   onClick={() => setActivePanel("none")}
@@ -617,34 +559,6 @@ export default function SettingsPage() {
                         {active && (
                           <Check size={16} style={{ color: color.hex }} />
                         )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* 🔥 PANEL: LANGUAGE */}
-              {activePanel === "language" && (
-                <div className="space-y-2 mb-6 max-h-[35vh] overflow-y-auto">
-                  {LANGUAGES.map((lang) => {
-                    const active = prefs.language === lang;
-                    return (
-                      <button
-                        key={lang}
-                        onClick={() => updatePreference("language", lang)}
-                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all border ${active ? "" : "bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-transparent"}`}
-                        style={{
-                          borderColor: active ? ac : "",
-                          background: active ? `${ac}10` : "",
-                        }}
-                      >
-                        <span
-                          className={`text-sm font-bold ${active ? "" : ""}`}
-                          style={{ color: active ? ac : "" }}
-                        >
-                          {lang}
-                        </span>
-                        {active && <Check size={18} style={{ color: ac }} />}
                       </button>
                     );
                   })}
