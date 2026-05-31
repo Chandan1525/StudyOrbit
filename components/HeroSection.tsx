@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 const STATS = [
   { value: "50K+", label: "Students" },
@@ -160,10 +161,21 @@ function TopoCanvas() {
 }
 
 export default function HeroSection() {
+  const router = useRouter();
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef });
   const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.6], [0, -60]);
+
+  // 🔥 Smooth Scroll Function 🔥
+  const scrollToFeatures = () => {
+    const element = document.getElementById("features");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      console.warn("Element with id 'features' not found. Add id='features' to your next section!");
+    }
+  };
 
   return (
     <section
@@ -203,7 +215,6 @@ export default function HeroSection() {
       {/* Hero Content */}
       <motion.div
         style={{ opacity: heroOpacity, y: heroY }}
-        // 🔥 FIX: 'justify-center' hatakar 'justify-start' kiya aur pt-[120px] lagaya 🔥
         className="relative z-10 flex flex-col items-center justify-start pt-[120px] md:pt-[160px] text-center px-4 flex-1 pb-16 w-full"
       >
         <motion.div
@@ -241,17 +252,22 @@ export default function HeroSection() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
+            {/* 🔥 Get Started: Route to Register 🔥 */}
             <motion.button
+              onClick={() => router.push("/auth/register")}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="bg-white text-black px-8 py-3.5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-lg shadow-white/10"
+              className="bg-white text-black px-8 py-3.5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-shadow duration-300"
             >
               Get Started <ArrowRight size={16} />
             </motion.button>
+            
+            {/* 🔥 Explore Platform: Smooth Scroll 🔥 */}
             <motion.button
+              onClick={() => router.push("/explore")}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="border border-white/20 px-8 py-3.5 rounded-full text-sm hover:bg-white/10 transition-all duration-300"
+              className="border border-white/20 px-8 py-3.5 rounded-full text-sm hover:bg-white/10 hover:border-white/40 transition-all duration-300 backdrop-blur-sm"
             >
               Explore Platform
             </motion.button>
