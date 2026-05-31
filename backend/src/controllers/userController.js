@@ -5,8 +5,7 @@ import bcrypt from 'bcryptjs';
 
 // 🔥 APNE OTP WALE EMAIL/SMS FUNCTIONS YAHAN IMPORT KARO 🔥
 // (Agar tumhari files kisi aur folder mein hain, toh ye path theek kar lena)
-import { sendEmail } from '../utils/sendEmail.js'; 
-import { sendSms } from '../utils/sendSms.js';
+import { sendEmail, sendSms } from './authController.js';
 
 export const getUsersForSidebar = async (req, res) => {
   try {
