@@ -1,7 +1,12 @@
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Notification from "../models/Notification.js";
-import bcrypt from 'bcryptjs'; // 🔥 NAYA IMPORT PASSWORD HASHING KE LIYE 🔥
+import bcrypt from 'bcryptjs';
+
+// 🔥 APNE OTP WALE EMAIL/SMS FUNCTIONS YAHAN IMPORT KARO 🔥
+// (Agar tumhari files kisi aur folder mein hain, toh ye path theek kar lena)
+import { sendEmail } from '../utils/sendEmail.js'; 
+import { sendSms } from '../utils/sendSms.js';
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -236,7 +241,7 @@ export const toggleFollow = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────
-// 🔥 CHANGE PASSWORD (SECURE LOGIC) 🔥
+// 🔥 CHANGE PASSWORD (SECURE LOGIC + EMAIL & SMS ALERTS) 🔥
 // ─────────────────────────────────────────────────────────────────────
 export const changePassword = async (req, res) => {
   try {
@@ -264,6 +269,43 @@ export const changePassword = async (req, res) => {
     user.password = hashedNewPassword;
     await user.save();
 
+    // ─────────────────────────────────────────────────────────
+    // 🔥 5. SEND SECURITY ALERTS (EMAIL & SMS) 🔥
+    // ─────────────────────────────────────────────────────────
+    const timeString = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+    // A. Send Email via Resend/Nodemailer
+    if (user.email) {
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <h2 style="color: #e11d48; text-align: center;">Security Alert: Password Changed</h2>
+          <p>Hi <b>${user.name || user.username}</b>,</p>
+          <p>The password for your StudyOrbit account was recently changed.</p>
+          <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid #3b82f6; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px;"><b>Time:</b> ${timeString}</p>
+          </div>
+          <p><b>If this was you</b>, you can safely ignore this email.</p>
+          <p style="color: #b91c1c; font-weight: bold;">If this wasn't you, please secure your account immediately and check your connected devices in settings.</p>
+        </div>
+      `;
+
+      // Without await so it runs in background
+      sendEmail({
+        email: user.email,
+        subject: "Security Alert: StudyOrbit Password Changed",
+        html: emailHtml
+      }).catch(err => console.error("Alert Email Failed:", err));
+    }
+
+    // B. Send SMS via Twilio
+    if (user.phone) { 
+      const smsMessage = `StudyOrbit Security: Your account password was changed on ${timeString}. If this wasn't you, secure your account immediately.`;
+      
+      // Without await so it runs in background
+      sendSms(user.phone, smsMessage).catch(err => console.error("Alert SMS Failed:", err));
+    }
+
+    // 6. Return success immediately to UI
     res.status(200).json({ message: "Password updated successfully!" });
   } catch (error) {
     console.error("Change Password Error:", error);
