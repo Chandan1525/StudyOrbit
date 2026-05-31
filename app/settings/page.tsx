@@ -198,7 +198,8 @@ export default function SettingsPage() {
           icon: Lock,
           label: "Change Password",
           desc: "Update your login password",
-          route: "/auth/reset-password",
+          // 🔥 PEHLE YE THA: route: "/auth/reset-password",
+          route: "/settings/change-password", // 👈 ISE UPDATE KAR DO
           color: "#f43f5e",
           bg: "#ffe4e6",
         },

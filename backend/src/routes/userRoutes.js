@@ -1,11 +1,15 @@
 import express from 'express';
-import { getUsersForSidebar, getUserProfile, toggleFollow, addProject, editProject, deleteProject } from '../controllers/userController.js'; 
+// 🔥 Import changePassword 🔥
+import { getUsersForSidebar, getUserProfile, toggleFollow, addProject, editProject, deleteProject, changePassword } from '../controllers/userController.js'; 
 import { protect } from '../middleware/authMiddleware.js';
 import { updateProfile } from "../controllers/authController.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
+
+// 🔥 NEW ROUTE: CHANGE PASSWORD 🔥
+router.put('/change-password', protect, changePassword);
 
 router.get('/sidebar', protect, getUsersForSidebar); 
 router.put("/update-profile", updateProfile);

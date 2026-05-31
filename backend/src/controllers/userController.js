@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Notification from "../models/Notification.js";
+import bcrypt from 'bcryptjs'; // 🔥 NAYA IMPORT PASSWORD HASHING KE LIYE 🔥
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -65,7 +66,6 @@ export const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
     
-    // 🔥 YAHAN POPULATE ADD KIYA HAI 🔥
     const user = await User.findById(userId)
       .select("-password")
       .populate("followers", "name username avatar")
@@ -89,7 +89,7 @@ export const getUserProfile = async (req, res) => {
         coverGradient: user.coverGradient,
         followers: user.followers || [],
         following: user.following || [], 
-        projects: user.projects || [] // 🔥 Projects ko bhi send karna zaroori hai
+        projects: user.projects || [] 
       }
     });
   } catch (error) {
@@ -103,10 +103,8 @@ export const addProject = async (req, res) => {
     const userId = req.user.id || req.user._id;
     const { name, desc, tech, github, live } = req.body;
 
-    // Tech string (comma separated) ko array mein convert karna
     const techArray = tech ? tech.split(',').map(t => t.trim()) : [];
 
-    // Random gradient generator
     const gradients = [
       "linear-gradient(135deg,#1e1b4b,#312e81)",
       "linear-gradient(135deg,#064e3b,#065f46)",
@@ -128,7 +126,6 @@ export const addProject = async (req, res) => {
       stars: 0
     };
 
-    // Naya project shuru mein add karo
     user.projects.unshift(newProject);
     await user.save();
 
@@ -187,7 +184,7 @@ export const deleteProject = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────
-//  TOGGLE FOLLOW / UNFOLLOW (FIXED VERSION)
+//  TOGGLE FOLLOW / UNFOLLOW
 // ─────────────────────────────────────────────────────────────────────
 export const toggleFollow = async (req, res) => {
   try {
@@ -210,11 +207,9 @@ export const toggleFollow = async (req, res) => {
     );
 
     if (isFollowing) {
-      // UNFOLLOW LOGIC
       targetUser.followers = targetUser.followers.filter(id => id.toString() !== loggedInUserId.toString());
       currentUser.following = currentUser.following.filter(id => id.toString() !== targetUserId.toString());
     } else {
-      // FOLLOW LOGIC
       targetUser.followers.push(loggedInUserId);
       currentUser.following.push(targetUserId);
 
@@ -237,5 +232,41 @@ export const toggleFollow = async (req, res) => {
   } catch (error) {
     console.error("Follow Error:", error);
     res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// 🔥 CHANGE PASSWORD (SECURE LOGIC) 🔥
+// ─────────────────────────────────────────────────────────────────────
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id || req.user._id;
+
+    // 1. Fetch user from database
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2. Compare current password with hashed password in DB
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect. Please try again." });
+    }
+
+    // 3. Hash the new password securely
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // 4. Update and save
+    user.password = hashedNewPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("Change Password Error:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
