@@ -31,7 +31,7 @@ const COMMUNITIES = [
 const TOPICS = [
   { label: "All", icon: "🌍", gradient: "linear-gradient(135deg,#f59e0b,#f97316)", endpoint: "ALL" },
   { label: "AI & ML", icon: "🤖", gradient: "linear-gradient(135deg,#5b21b6,#7c3aed)", endpoint: "ML" },
-  { label: "Web3", icon: "🌐", gradient: "linear-gradient(135deg,#2563eb,#3b82f6)", endpoint: "WEB" },
+  { label: "Web", icon: "🌐", gradient: "linear-gradient(135deg,#2563eb,#3b82f6)", endpoint: "WEB" },
   { label: "Mobile", icon: "📱", gradient: "linear-gradient(135deg,#0284c7,#0ea5e9)", endpoint: "APP" },
   { label: "Cloud", icon: "☁️", gradient: "linear-gradient(135deg,#059669,#10b981)", endpoint: "CLOUD" },
   { label: "Hackathons", icon: "🏆", gradient: "linear-gradient(135deg,#7c3aed,#a855f7)", endpoint: "HACK" },
@@ -579,20 +579,25 @@ export default function DashboardPage() {
                 <div className="absolute -top-5 -right-5 w-28 h-28 bg-white/10 rounded-full" />
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl">{item.icon}</div>
-                  <div>
-                    <h3 className="text-white text-xl font-black">{item.label}</h3>
+                  
+                  {/* 🔥 FIXED DIV & TEXT OVERFLOW 🔥 */}
+                  <div className="w-full overflow-hidden">
+                    <h3 className="text-white text-lg font-black truncate block w-full">{item.label}</h3>
+                    
                     {active && (
                       <div className="mt-2 px-2.5 py-1 bg-black/20 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 text-white">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Active
                       </div>
                     )}
                   </div>
+
                 </div>
               </button>
             );
           })}
         </div>
       </div>
+
 
       {/* Feed */}
       <div className="px-5 mt-8 space-y-5">
