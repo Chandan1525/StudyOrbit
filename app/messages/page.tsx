@@ -113,8 +113,6 @@ function ChatInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  
-
   useEffect(() => {
     if (currentUser) {
       if (settingOnline) {
@@ -191,18 +189,19 @@ function ChatInterface() {
     fetchMessages();
   }, [activeChat]);
 
-// 🔥 SOCKET LISTENERS (UPDATED WITH SAFE IDs) 🔥
+  // 🔥 SOCKET LISTENERS (UPDATED WITH SAFE IDs) 🔥
   useEffect(() => {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
 
       // 🔥 FIX: Safe ID Extraction (Object aane par crash nahi hoga)
       const senderId = data.sender?._id || data.sender?.id || data.sender;
-      const receiverId = data.receiver?._id || data.receiver?.id || data.receiver;
+      const receiverId =
+        data.receiver?._id || data.receiver?.id || data.receiver;
 
       // STRICT CHECK
-      const isMessageForThisChat = 
-        (senderId === activeChat?._id && receiverId === myId) || 
+      const isMessageForThisChat =
+        (senderId === activeChat?._id && receiverId === myId) ||
         (senderId === myId && receiverId === activeChat?._id);
 
       if (activeChat && isMessageForThisChat) {
@@ -214,15 +213,19 @@ function ChatInterface() {
         // Agar message kisi aur ka hai, tabhi Unread (Green Dot) mark karo
         if (senderId !== myId) {
           setUnreadChats((prev) => ({ ...prev, [senderId]: true }));
-          
+
           // 🔥 SYNC WITH BOTTOM NAV
           localStorage.setItem("has_new_msg", "true");
           window.dispatchEvent(new Event("new_message_alert"));
 
           if (!settingMute) {
             try {
-              const audio = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3");
-              audio.play().catch((err) => console.log("Browser blocked auto-play"));
+              const audio = new Audio(
+                "https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3",
+              );
+              audio
+                .play()
+                .catch((err) => console.log("Browser blocked auto-play"));
             } catch (error) {
               console.error("Audio error", error);
             }
@@ -454,10 +457,14 @@ function ChatInterface() {
               filteredUsers.map((user) => {
                 // 🔥 SAFE ID EXTRACTOR: Crash/Mismatch se bachne ke liye
                 const safeUserId = user._id || user.id;
-                
-                const isActive = activeChat?._id === safeUserId || activeChat?.id === safeUserId;
-                const isUserOnline = onlineUsers.includes(safeUserId) && user.showOnlineStatus !== false;
-                
+
+                const isActive =
+                  activeChat?._id === safeUserId ||
+                  activeChat?.id === safeUserId;
+                const isUserOnline =
+                  onlineUsers.includes(safeUserId) &&
+                  user.showOnlineStatus !== false;
+
                 // Check if this specific user has unread messages
                 const hasUnread = unreadChats[safeUserId];
 
@@ -466,20 +473,21 @@ function ChatInterface() {
                     key={safeUserId}
                     onClick={() => {
                       setActiveChat(user);
-                      
+
                       // 🔥 DOT REMOVE & SYNC LOGIC 🔥
                       setUnreadChats((prev) => {
                         const updatedChats = { ...prev, [safeUserId]: false };
-                        
+
                         // Check karo ki kya koi aur chat unread bachi hai list mein?
-                        const anyUnreadLeft = Object.values(updatedChats).some(Boolean);
-                        
+                        const anyUnreadLeft =
+                          Object.values(updatedChats).some(Boolean);
+
                         if (!anyUnreadLeft) {
                           // Agar aur koi chat unread nahi hai, toh Footer ka Dot bhi hamesha ke liye hata do
                           localStorage.removeItem("has_new_msg");
                           window.dispatchEvent(new Event("new_message_alert"));
                         }
-                        
+
                         return updatedChats;
                       });
                     }}
@@ -502,18 +510,22 @@ function ChatInterface() {
                         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
                       )}
                     </div>
-                    
+
                     <div className="flex-1 overflow-hidden">
                       <h3
                         className={`font-bold text-[15px] truncate ${
-                          isActive ? "text-gray-900 dark:text-white" : "text-gray-800 dark:text-slate-200"
+                          isActive
+                            ? "text-gray-900 dark:text-white"
+                            : "text-gray-800 dark:text-slate-200"
                         }`}
                       >
                         {user.name || user.username}
                       </h3>
                       <p
                         className={`text-[11px] font-medium mt-0.5 truncate ${
-                          isActive ? "text-gray-600 dark:text-white/80" : "text-gray-400 dark:text-slate-500"
+                          isActive
+                            ? "text-gray-600 dark:text-white/80"
+                            : "text-gray-400 dark:text-slate-500"
                         }`}
                       >
                         {/* 🔥 TEXT TOGGLE MAGIC 🔥 */}
@@ -578,9 +590,10 @@ function ChatInterface() {
                       className="w-10 h-10 md:w-12 md:h-12 rounded-[14px] object-cover shadow-sm border border-gray-100 dark:border-slate-700"
                     />
                     {/* 🔥 HEADER AVATAR PRIVACY CHECK 🔥 */}
-                    {onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false && (
-                      <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
-                    )}
+                    {onlineUsers.includes(activeChat._id) &&
+                      activeChat.showOnlineStatus !== false && (
+                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
+                      )}
                   </div>
                   <div className="truncate">
                     <h2
@@ -589,12 +602,13 @@ function ChatInterface() {
                     >
                       {activeChat.name || activeChat.username}
                     </h2>
-                    
+
                     {/* 🔥 HEADER TEXT PRIVACY CHECK 🔥 */}
                     <p
                       className={`${onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
                     >
-                      {onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false
+                      {onlineUsers.includes(activeChat._id) &&
+                      activeChat.showOnlineStatus !== false
                         ? "Online"
                         : "Offline"}
                     </p>
@@ -721,10 +735,12 @@ function ChatInterface() {
                           <p
                             className={`text-[10px] mt-1.5 font-medium text-right ${isMe ? "text-gray-500 dark:text-white/60" : "text-gray-400 dark:text-white/40"}`}
                           >
-                            {new Date(msg.createdAt).toLocaleTimeString(
-                              "en-IN",
-                              { hour: "2-digit", minute: "2-digit" },
-                            )}
+                            {new Date(msg.createdAt).toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </p>
                         </div>
                       </div>
@@ -774,7 +790,6 @@ function ChatInterface() {
                   )}
 
                   <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                    
                     {/* 1. Hidden File Input */}
                     <input
                       type="file"
