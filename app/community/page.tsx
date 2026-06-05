@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation"; // 🔥 usePathname add kiya
 import {
   Home,
   Search,
@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Zap,
   Loader2, 
-  Presentation // 🔥 Added loader for image uploading state
+  Presentation
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -27,8 +27,7 @@ const API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 const socket = io(API);
 
 const getAuthHeaders = () => {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return { Authorization: `Bearer ${token}` };
 };
 
@@ -63,7 +62,11 @@ const CHANNELS = [
 function CommunityInterface() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname(); // 🔥 Pathname initialize kiya
   const preSelectedChannel = searchParams.get("channel");
+
+  // 🔥 Auth Verification State (jab tak check na ho, UI rok ke rakho)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const [activeTab, setActiveTab] = useState("community");
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -84,16 +87,34 @@ function CommunityInterface() {
 
   const [boardComingSoon, setBoardComingSoon] = useState(false);
 
-  const handleBoardClick = () => {
-    setBoardComingSoon(true);
-    setTimeout(() => setBoardComingSoon(false), 3000); // 3 second baad wapas normal
-  };
-
   // 🔥 IMAGE UPLOAD STATES 🔥
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 🔥 AUTHENTICATION CHECK EFFECT 🔥
+  // 🔥 AUTHENTICATION CHECK EFFECT 🔥
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        // Build full path to redirect back
+        const currentPath = `${pathname}${preSelectedChannel ? `?channel=${preSelectedChannel}` : ""}`;
+        
+        // 🔥 FIX: Yahan /login ko badal kar /auth/login kar diya 🔥
+        router.push(`/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`);
+      } else {
+        // Token mil gaya, UI render hone do
+        setIsCheckingAuth(false);
+      }
+    }
+  }, [pathname, preSelectedChannel, router]);
+
+  const handleBoardClick = () => {
+    setBoardComingSoon(true);
+    setTimeout(() => setBoardComingSoon(false), 3000); 
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -224,15 +245,13 @@ function CommunityInterface() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // 🔥 UPDATED SEND MESSAGE (Handles Image Upload via Cloudinary) 🔥
-  // 🔥 UPDATED SEND MESSAGE (Fixed to match Personal Chat Logic) 🔥
+  // 🔥 SEND MESSAGE LOGIC 🔥
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !selectedImage) || !currentUser || !activeChannel) return;
 
     setIsUploading(true);
     const msgId = Date.now().toString();
 
-    // Create local preview immediately for fast UI
     let localImageUrl = "";
     if (selectedImage) {
       localImageUrl = URL.createObjectURL(selectedImage);
@@ -240,7 +259,7 @@ function CommunityInterface() {
 
     const newMsg = {
       id: msgId,
-      _id: msgId, // Adding _id for consistency with some socket events
+      _id: msgId, 
       user: currentUser?.name || currentUser?.username || "Student",
       role: "Member",
       time: new Date().toLocaleTimeString("en-IN", {
@@ -248,7 +267,7 @@ function CommunityInterface() {
         minute: "2-digit",
       }),
       text: newMessage.trim(),
-      image: localImageUrl, // Show local image instantly
+      image: localImageUrl, 
       avatar: (currentUser?.name || currentUser?.username || "S")
         .charAt(0)
         .toUpperCase(),
@@ -257,14 +276,12 @@ function CommunityInterface() {
 
     setChatMessages((prev) => [...prev, newMsg]);
     
-    // Save these before clearing states
     const textToSend = newMessage.trim();
     const fileToSend = selectedImage;
 
     setNewMessage("");
     handleRemoveImage();
 
-    // We emit to socket first so others see it instantly (if image, they won't see it until backend replies, or we can send file Buffer if socket supports it, but standard is to let backend handle image first. For now, text goes instantly.)
     if (!fileToSend) {
       socket.emit("send_community_message", {
         channel: activeChannel.name,
@@ -273,28 +290,26 @@ function CommunityInterface() {
       setIsUploading(false);
     }
 
-    // Prepare FormData just like in personal chat
     const formData = new FormData();
     if (textToSend) formData.append("text", textToSend);
-    if (fileToSend) formData.append("image", fileToSend); // Key should match what backend Multer expects
+    if (fileToSend) formData.append("image", fileToSend); 
 
     try {
       const res = await axios.post(
         `${API}/api/community/${encodeURIComponent(activeChannel.name)}/messages`,
-        formData, // Sending FormData instead of JSON
+        formData, 
         { 
           headers: {
             ...getAuthHeaders(),
-            "Content-Type": "multipart/form-data", // Crucial for file uploads
+            "Content-Type": "multipart/form-data",
           } 
         },
       );
 
-      // If there was an image, emit to socket AFTER we get the Cloudinary URL from backend
       if (fileToSend) {
          const finalMsg = {
             ...newMsg,
-            image: res.data.image, // Actual URL from backend
+            image: res.data.image, 
             _id: res.data._id,
             id: res.data._id
          };
@@ -311,8 +326,6 @@ function CommunityInterface() {
       );
     } catch (err) {
       console.error("Failed to save message", err);
-      // Optional: remove message if failed
-      // setChatMessages((prev) => prev.filter((m) => m.id !== msgId));
     } finally {
       setIsUploading(false);
     }
@@ -386,6 +399,20 @@ function CommunityInterface() {
       channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       channel.tag.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  // 🔥 AGAR AUTH CHECK CHAL RAHA HAI, TOH SCREEN HOLD KARO 🔥
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-accent" size={32} />
+          <span className="text-gray-500 dark:text-gray-400 font-bold animate-pulse text-sm">
+            Verifying Secure Access...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full bg-transparent dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden flex flex-col justify-between transition-colors duration-300">
@@ -485,7 +512,6 @@ function CommunityInterface() {
                         {channel.name}
                       </p>
                       
-                      {/* 🔥 PURANA FAKE DATA HATA DIYA, AB SIRF LIVE COUNT DIKHEGA 🔥 */}
                       <div className={`text-[11px] mt-2.5 flex items-center gap-1.5 font-medium leading-none ${liveCount > 0 ? "text-green-300 font-bold" : "text-white/60"}`}>
                         <span className={`w-1.5 h-1.5 flex-shrink-0 rounded-full ${liveCount > 0 ? "bg-green-400 animate-pulse" : "bg-white/30"}`} />
                         {liveCount} {liveCount === 1 ? "Member" : "Members"} Online
@@ -532,7 +558,7 @@ function CommunityInterface() {
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   
-                  {/* 🔥 NAYA COLLAB BOARD TEASER BUTTON 🔥 */}
+                  {/* 🔥 COLLAB BOARD TEASER BUTTON 🔥 */}
                   <button
                     onClick={handleBoardClick}
                     className="hidden md:flex items-center gap-2 px-4 py-2 rounded-[14px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all text-xs font-bold border border-indigo-200 dark:border-indigo-500/20 active:scale-95"
@@ -548,7 +574,6 @@ function CommunityInterface() {
                     )}
                   </button>
 
-                  {/* PURANA INVITE BUTTON */}
                   <button
                     onClick={handleInviteClick}
                     className="px-5 py-2 rounded-[14px] bg-accent hover:opacity-90 transition-all text-xs font-bold shadow-md shadow-accent/20 text-white flex items-center gap-2 active:scale-95"

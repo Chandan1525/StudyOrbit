@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Link from "next/link";
-import { useRef, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useCallback, useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GoogleLogin } from '@react-oauth/google';
 
-// ── Topo Canvas ────────────────────────────────────────────────────────
+// ── Topo Canvas (As it was) ────────────────────────────────────────────────────────
 function TopoCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef  = useRef<number>(0);
@@ -61,13 +61,18 @@ function TopoCanvas() {
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity:0.95 }} />;
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier]     = useState("");
   const [password, setPassword]         = useState("");
   const [isLoading, setIsLoading]       = useState(false);
   const [error, setError]               = useState("");
+  
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // 🔥 FETCH CALLBACK URL FRON SEARCH PARAMS 🔥
+  const callbackUrl = searchParams.get('callbackUrl');
 
   // ── Standard email/password login ────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
@@ -86,9 +91,14 @@ export default function LoginPage() {
 
       if (response.ok && data.success) {
         localStorage.setItem("token", data.token);
-        // 🔥 FIX: Ab seedha backend ka fresh data save hoga, purana mix nahi hoga
         localStorage.setItem("user", JSON.stringify(data.user));
-        router.push("/dashboard");
+        
+        // 🔥 REDIRECT LOGIC 🔥
+        if (callbackUrl) {
+           router.push(callbackUrl);
+        } else {
+           router.push("/dashboard");
+        }
       } else {
         setError(data.message || "Invalid credentials.");
       }
@@ -117,9 +127,14 @@ export default function LoginPage() {
 
       if (res.ok && data.success) {
         localStorage.setItem("token", data.token);
-        // 🔥 FIX: Yahan par bhi seedha backend ka fresh data save hoga
         localStorage.setItem("user", JSON.stringify(data.user));
-        router.push("/dashboard");
+        
+        // 🔥 REDIRECT LOGIC 🔥
+        if (callbackUrl) {
+           router.push(callbackUrl);
+        } else {
+           router.push("/dashboard");
+        }
       } else {
         setError(data.message || "Google Login failed.");
       }
@@ -240,4 +255,12 @@ export default function LoginPage() {
       </motion.div>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center text-white bg-black">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
+  )
 }

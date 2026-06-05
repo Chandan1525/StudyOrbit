@@ -98,3 +98,34 @@ export const deleteCommunityMessage = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const joinCommunity = async (req, res) => {
+  try {
+    const { id: communityId } = req.params;
+    
+    // Auth middleware verify karke req.user dega
+    const userId = req.user._id || req.user.id; 
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: Please login first." });
+    }
+
+    // Community fetch and update logic
+    // This assumes you have a Community model maintaining a 'members' array
+    const updatedCommunity = await Community.findByIdAndUpdate(
+      communityId,
+      { $addToSet: { members: userId } }, // Duplicates ko avoid karega
+      { new: true }
+    );
+
+    if (!updatedCommunity) {
+      return res.status(404).json({ message: "Community not found" });
+    }
+
+    res.status(200).json({ message: "Successfully joined community", community: updatedCommunity });
+
+  } catch (error) {
+    console.error("Error joining community:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
