@@ -155,15 +155,26 @@ app.use('/api/users', userRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// 🔥 ADDED HEALTH CHECK ROUTE FOR UPTIMEROBOT 🔥
-app.get("/api/health", (req, res) => {
-  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
-  const dbState = mongoose.connection.readyState;
-  res.status(200).json({ 
-    success: true, 
-    message: "Backend is awake! 🚀",
-    databaseStatus: dbState === 1 ? "Connected" : "Disconnected or Sleeping"
-  });
+// 🔥 ADDED HEALTH CHECK ROUTE FOR UPTIMEROBOT & GITHUB ACTIONS 🔥
+app.get("/api/health", async (req, res) => {
+  try {
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    const dbState = mongoose.connection.readyState;
+    
+    // Asli magic yahan hai: Atlas ko ek blank ping bhej rahe hain jagane ke liye
+    if (dbState === 1) {
+      await mongoose.connection.db.admin().ping();
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Backend is awake! 🚀",
+      databaseStatus: dbState === 1 ? "Connected & Warm" : "Disconnected or Sleeping"
+    });
+  } catch (error) {
+    console.error("Health Check DB Error:", error);
+    res.status(500).json({ success: false, message: "Health check failed." });
+  }
 });
 
 app.get("/", (req, res) => {
