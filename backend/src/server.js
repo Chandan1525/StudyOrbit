@@ -7,6 +7,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import http from "http";
 import { Server } from "socket.io";
+import mongoose from "mongoose"; // 🔥 Added Mongoose for health check
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -49,26 +50,20 @@ io.on("connection", (socket) => {
   // ==========================================
 
   socket.on("add_user", (userId) => {
-    // 🔥 FIX 1: Hamesha String mein save karo taaki mismatch na ho
     onlineUsers.set(socket.id, String(userId));
     io.emit("get_online_users", Array.from(onlineUsers.values()));
   });
 
-  // 🔥 UPDATED: Send message safely
   socket.on("send_message", (data) => {
-    // Backend aur Frontend dono ki IDs ko strictly String bana lo
     const receiverId = String(data.receiver?._id || data.receiver);
 
     for (let [socketId, userId] of onlineUsers.entries()) {
       if (userId === receiverId) {
         io.to(socketId).emit("receive_message", data);
-        // ❌ Yahan se 'break;' hata diya! 
-        // Ab agar user 2 tabs/devices mein online hai, toh dono par message aayega.
       }
     }
   });
 
-  // 🔥 UPDATED: Edit message safely
   socket.on("edit_message", (data) => {
     const receiverId = String(data.receiver?._id || data.receiver);
 
@@ -79,7 +74,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 🔥 UPDATED: Delete message safely
   socket.on("delete_message", (data) => {
     const receiverId = String(data.receiver?._id || data.receiver);
     
@@ -98,7 +92,6 @@ io.on("connection", (socket) => {
     socket.join(channelName);
     console.log(`👥 User ${socket.id} joined community: ${channelName}`);
     
-    // 🔥 UPDATE: io.to() ko hata kar io.emit() kar diya taaki sabhi ko sidebar me count dikhe
     const roomSize = io.sockets.adapter.rooms.get(channelName)?.size || 1;
     io.emit("community_active_count", { channel: channelName, count: roomSize });
   });
@@ -107,7 +100,6 @@ io.on("connection", (socket) => {
     socket.leave(channelName);
     console.log(`🚪 User ${socket.id} left community: ${channelName}`);
     
-    // 🔥 UPDATE: io.to() ko hata kar io.emit() kar diya
     const roomSize = io.sockets.adapter.rooms.get(channelName)?.size || 0;
     io.emit("community_active_count", { channel: channelName, count: roomSize });
   });
@@ -163,6 +155,16 @@ app.use('/api/users', userRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// 🔥 ADDED HEALTH CHECK ROUTE FOR UPTIMEROBOT 🔥
+app.get("/api/health", (req, res) => {
+  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  const dbState = mongoose.connection.readyState;
+  res.status(200).json({ 
+    success: true, 
+    message: "Backend is awake! 🚀",
+    databaseStatus: dbState === 1 ? "Connected" : "Disconnected or Sleeping"
+  });
+});
 
 app.get("/", (req, res) => {
   res.json({ message: "StudyOrbit Backend Running 🚀" });
