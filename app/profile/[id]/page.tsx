@@ -115,7 +115,7 @@ export default function DynamicProfilePage({
 
     if (profileUrl) {
       navigator.clipboard.writeText(profileUrl);
-      alert("Profile link copied to clipboard!"); 
+      alert("Profile link copied to clipboard!");
     }
     setShowMoreMenu(false);
   };
@@ -134,13 +134,13 @@ export default function DynamicProfilePage({
     // Check if we have cached profile data for this specific user
     const cacheKey = `profileCache_${userId}`;
     const cachedData = localStorage.getItem(cacheKey);
-    
+
     if (cachedData) {
       const parsedCache = JSON.parse(cachedData);
       setProfileData(parsedCache.user);
       setFollowersCount(parsedCache.user.followers?.length || 0);
       setUserPosts(parsedCache.posts || []);
-      
+
       if (currentUser && parsedCache.user.followers) {
         const amIFollowing = parsedCache.user.followers.some(
           (f: any) =>
@@ -151,17 +151,43 @@ export default function DynamicProfilePage({
         setIsFollowing(amIFollowing);
       }
       // Hide loading immediately because we have cached data
-      setIsLoading(false); 
+      setIsLoading(false);
     }
 
     const fetchData = async () => {
       try {
-        const profileRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
+        const baseUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+
+        // 🔥 PARALLEL FETCHING (Ye dono requests ek saath server par jayengi) 🔥
+        const profilePromise = axios.get(
+          `${baseUrl}/api/users/profile/${userId}`,
         );
+
+        // Agar posts fetch karne mein error aaye, toh hum empty array return kar denge
+        // taaki Promise.all crash na kare aur user ko profile dikhti rahe.
+        const postsPromise = axios
+          .get(`${baseUrl}/api/posts/user/${userId}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+          .catch((postErr) => {
+            console.warn("Could not fetch posts.");
+            return { data: [] };
+          });
+
+        // 🚀 Dono ka data ek saath aayega! Wait time seedha aadha ho gaya.
+        const [profileRes, postsRes] = await Promise.all([
+          profilePromise,
+          postsPromise,
+        ]);
+
         const data = profileRes.data.user;
+        const postsData = postsRes.data || [];
+
+        // --- State Updates ---
         setProfileData(data);
         setFollowersCount(data.followers?.length || 0);
+        setUserPosts(postsData);
 
         if (currentUser && data.followers) {
           const amIFollowing = data.followers.some(
@@ -173,23 +199,11 @@ export default function DynamicProfilePage({
           setIsFollowing(amIFollowing);
         }
 
-        let postsData = [];
-        try {
-          const postsRes = await axios.get(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/user/${userId}`,
-            {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            },
-          );
-          postsData = postsRes.data || [];
-          setUserPosts(postsData);
-        } catch (postErr) {
-          console.warn("Could not fetch posts.");
-        }
-
         // 🔥 SAVE FRESH DATA TO CACHE 🔥
-        localStorage.setItem(cacheKey, JSON.stringify({ user: data, posts: postsData }));
-
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ user: data, posts: postsData }),
+        );
       } catch (error) {
         console.error("Failed to load profile", error);
       } finally {
@@ -227,17 +241,16 @@ export default function DynamicProfilePage({
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setLoggedInUser(updatedUser);
-      
-      // Update cache after follow action
-      if(profileData) {
-          const cacheKey = `profileCache_${userId}`;
-          const currentCache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
-          if(currentCache.user) {
-              currentCache.user.followers = res.data.followersCount; 
-              localStorage.setItem(cacheKey, JSON.stringify(currentCache));
-          }
-      }
 
+      // Update cache after follow action
+      if (profileData) {
+        const cacheKey = `profileCache_${userId}`;
+        const currentCache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+        if (currentCache.user) {
+          currentCache.user.followers = res.data.followersCount;
+          localStorage.setItem(cacheKey, JSON.stringify(currentCache));
+        }
+      }
     } catch (error) {
       console.error("Follow error:", error);
       setIsFollowing(wasFollowing);
