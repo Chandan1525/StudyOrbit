@@ -1,0 +1,13 @@
+name: Keep Backend Awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping StudyOrbit API
+        run: curl -s https://studyorbit-backend-0chi.onrender.com/api/health
