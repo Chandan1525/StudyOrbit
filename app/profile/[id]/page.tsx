@@ -26,7 +26,7 @@ import {
   X,
   ChevronRight,
 } from "lucide-react";
-import { QRCodeCanvas } from "qrcode.react"; // 🔥 QR CODE LIBRARY IMPORT KIYI HAI 🔥
+import { QRCodeCanvas } from "qrcode.react";
 
 // ── Custom Github & Linkedin Icons ──
 const GithubIcon = ({ size = 24, className = "" }) => (
@@ -115,7 +115,7 @@ export default function DynamicProfilePage({
 
     if (profileUrl) {
       navigator.clipboard.writeText(profileUrl);
-      alert("Profile link copied to clipboard!"); // You can replace this with a custom Toast notification
+      alert("Profile link copied to clipboard!"); 
     }
     setShowMoreMenu(false);
   };
@@ -130,6 +130,30 @@ export default function DynamicProfilePage({
       setLoggedInUser(currentUser);
     }
 
+    // 🔥 FIX: CACHING LOGIC ADDED HERE 🔥
+    // Check if we have cached profile data for this specific user
+    const cacheKey = `profileCache_${userId}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    
+    if (cachedData) {
+      const parsedCache = JSON.parse(cachedData);
+      setProfileData(parsedCache.user);
+      setFollowersCount(parsedCache.user.followers?.length || 0);
+      setUserPosts(parsedCache.posts || []);
+      
+      if (currentUser && parsedCache.user.followers) {
+        const amIFollowing = parsedCache.user.followers.some(
+          (f: any) =>
+            f._id === currentUser.id ||
+            f._id === currentUser._id ||
+            f === currentUser.id,
+        );
+        setIsFollowing(amIFollowing);
+      }
+      // Hide loading immediately because we have cached data
+      setIsLoading(false); 
+    }
+
     const fetchData = async () => {
       try {
         const profileRes = await axios.get(
@@ -137,7 +161,6 @@ export default function DynamicProfilePage({
         );
         const data = profileRes.data.user;
         setProfileData(data);
-
         setFollowersCount(data.followers?.length || 0);
 
         if (currentUser && data.followers) {
@@ -150,6 +173,7 @@ export default function DynamicProfilePage({
           setIsFollowing(amIFollowing);
         }
 
+        let postsData = [];
         try {
           const postsRes = await axios.get(
             `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/user/${userId}`,
@@ -157,10 +181,15 @@ export default function DynamicProfilePage({
               headers: token ? { Authorization: `Bearer ${token}` } : {},
             },
           );
-          setUserPosts(postsRes.data || []);
+          postsData = postsRes.data || [];
+          setUserPosts(postsData);
         } catch (postErr) {
           console.warn("Could not fetch posts.");
         }
+
+        // 🔥 SAVE FRESH DATA TO CACHE 🔥
+        localStorage.setItem(cacheKey, JSON.stringify({ user: data, posts: postsData }));
+
       } catch (error) {
         console.error("Failed to load profile", error);
       } finally {
@@ -198,6 +227,17 @@ export default function DynamicProfilePage({
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setLoggedInUser(updatedUser);
+      
+      // Update cache after follow action
+      if(profileData) {
+          const cacheKey = `profileCache_${userId}`;
+          const currentCache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+          if(currentCache.user) {
+              currentCache.user.followers = res.data.followersCount; 
+              localStorage.setItem(cacheKey, JSON.stringify(currentCache));
+          }
+      }
+
     } catch (error) {
       console.error("Follow error:", error);
       setIsFollowing(wasFollowing);
@@ -356,7 +396,7 @@ export default function DynamicProfilePage({
           @{profileData.username}
         </p>
 
-        {/* 🔥 FIX 1: DYNAMIC SOCIAL LINKS 🔥 */}
+        {/* 🔥 DYNAMIC SOCIAL LINKS 🔥 */}
         <div className="flex flex-wrap items-center justify-center gap-4 mt-3 text-xs text-gray-500 dark:text-slate-400 transition-colors">
           {profileData.location && (
             <span className="flex items-center gap-1">
@@ -631,7 +671,7 @@ export default function DynamicProfilePage({
             </div>
           )}
 
-          {/* 🔥 FIX 2: DYNAMIC PROJECTS 🔥 */}
+          {/* PROJECTS */}
           {activeTab === "projects" && (
             <AnimatePresence mode="wait">
               <motion.div
@@ -748,7 +788,7 @@ export default function DynamicProfilePage({
             </AnimatePresence>
           )}
 
-          {/* 🔥 FIX 3: DYNAMIC QR CODE 🔥 */}
+          {/* QR CODE */}
           {activeTab === "qr" && (
             <motion.div
               key="qr"
