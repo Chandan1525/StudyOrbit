@@ -238,46 +238,55 @@ export default function ProfilePage() {
         setLoggedInUserId(userId);
         const token = localStorage.getItem("token");
 
-        // 1. Fetch FRESH Profile Data
-        const profileRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users/profile/${userId}`,
-        );
-        const freshData = profileRes.data.user;
-        setProfileUser(freshData);
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
-        // 2. Fetch User's Own Posts
-        const postsRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/user/${userId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-        setPosts(postsRes.data);
+        // 🔥 1. SETUP ALL PROMISES FOR PARALLEL FETCHING 🔥
+        const profilePromise = axios.get(`${baseUrl}/api/users/profile/${userId}`);
+        
+        const postsPromise = axios.get(`${baseUrl}/api/posts/user/${userId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).catch(err => {
+          console.warn("Could not fetch user posts");
+          return { data: [] };
+        });
+
+        let notifPromise = Promise.resolve({ data: [] });
+        let savedPromise = Promise.resolve({ data: [] });
 
         if (token) {
-          // 3. Fetch Unread Notifications Count
-          try {
-            const notifRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/notifications`,
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
-            const unread = notifRes.data.filter((n: any) => !n.read).length;
-            setUnreadCount(unread);
-          } catch (err) {
-            console.error("Error fetching notification count", err);
-          }
+          notifPromise = axios.get(`${baseUrl}/api/notifications`, { 
+            headers: { Authorization: `Bearer ${token}` } 
+          }).catch(err => {
+            console.warn("Could not fetch notifications");
+            return { data: [] };
+          });
 
-          // 4. Fetch User's SAVED Posts
-          try {
-            const savedRes = await axios.get(
-              `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts/saved`,
-              { headers: { Authorization: `Bearer ${token}` } },
-            );
-            setSavedPosts(savedRes.data);
-          } catch (err) {
-            console.error("Error fetching saved posts", err);
-          }
+          savedPromise = axios.get(`${baseUrl}/api/posts/saved`, { 
+            headers: { Authorization: `Bearer ${token}` } 
+          }).catch(err => {
+            console.warn("Could not fetch saved posts");
+            return { data: [] };
+          });
         }
+
+        // 🔥 2. FIRE ALL PROMISES AT ONCE 🔥
+        const [profileRes, postsRes, notifRes, savedRes] = await Promise.all([
+          profilePromise,
+          postsPromise,
+          notifPromise,
+          savedPromise
+        ]);
+
+        // 🔥 3. SET ALL DATA 🔥
+        setProfileUser(profileRes.data.user);
+        setPosts(postsRes.data || []);
+
+        if (token) {
+          const unread = (notifRes.data || []).filter((n: any) => !n.read).length;
+          setUnreadCount(unread);
+          setSavedPosts(savedRes.data || []);
+        }
+
       } catch (error) {
         console.error("Error fetching profile data", error);
       } finally {
