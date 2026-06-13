@@ -1,9 +1,8 @@
-
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { LanguageProvider } from "@/context/LanguageContext"; // 🟢 Language Provider yahan aa gaya
+import { LanguageProvider } from "@/context/LanguageContext"; // 🟢 Language Provider
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +14,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// 🔥 PWA Manifest linked here
 export const metadata: Metadata = {
   title: "StudyOrbit",
   description: "Your modern learning platform",
+  manifest: "/manifest.json", 
+};
+
+// 🔥 Mobile status bar color for true Native App feel
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
 };
 
 // 🟢 SIRF EK BAAR ROOT LAYOUT
