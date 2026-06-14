@@ -96,11 +96,12 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogout = () => {
+ const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    // 🔥 ROUTER KO SEEDHA ROOT PAR BHEJO TAARI AUTO-LOGIN NA HO
-    router.push("/");
+    
+    // 🔥 Puraane "/" ko hata kar wapas "/auth/login" kar do
+    router.push("/auth/login"); 
   };
 
   const handleClearCache = () => {
