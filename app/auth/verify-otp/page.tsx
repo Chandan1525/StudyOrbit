@@ -234,7 +234,7 @@ function VerifyOtpContent() {
                 background: "linear-gradient(135deg,#ff4d8d,#7c4dff)",
               }}
             >
-              LO
+              SO
             </div>
             <span className="text-3xl font-black">
               Study<span className="text-pink-400">Orbit</span>

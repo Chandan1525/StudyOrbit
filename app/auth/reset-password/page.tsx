@@ -219,7 +219,7 @@ function ResetPasswordContent() {
           <Link href="/" className="inline-flex items-center gap-2">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white"
               style={{ background: "linear-gradient(135deg, #e03050, #a01030)" }}>
-              LO
+              SO
             </div>
             <span className="text-2xl font-black tracking-wide text-white">
               Study<span style={{ color: "#e05070" }}>Orbit</span>

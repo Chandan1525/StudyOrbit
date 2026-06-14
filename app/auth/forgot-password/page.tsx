@@ -237,7 +237,7 @@ export default function ForgotPasswordPage() {
                   background: "linear-gradient(135deg, #e03050, #a01030)",
                 }}
               >
-                LO
+                SO
               </div>
               <span className="text-2xl font-black tracking-wide text-white">
                 Study
