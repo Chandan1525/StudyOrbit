@@ -99,7 +99,8 @@ export default function SettingsPage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    router.push("/auth/login");
+    // 🔥 ROUTER KO SEEDHA ROOT PAR BHEJO TAARI AUTO-LOGIN NA HO
+    router.push("/");
   };
 
   const handleClearCache = () => {

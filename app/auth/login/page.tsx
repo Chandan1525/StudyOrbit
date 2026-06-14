@@ -101,6 +101,9 @@ function LoginForm() {
   // 🔥 FETCH CALLBACK URL FROM SEARCH PARAMS 🔥
   const callbackUrl = searchParams.get("callbackUrl");
 
+  // 1️⃣ EK NAYA REF BANAO JO USED TOKEN KO YAAD RAKHEGA
+  const processedToken = useRef<string | null>(null);
+
   // ── Standard email/password login ────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,11 +188,16 @@ function LoginForm() {
     }
   };
 
-  // 🔥 PWA GOOGLE REDIRECT HANDLER 🔥
-  // Catch the token if Google redirects back to this page
+  // 🔥 PWA GOOGLE REDIRECT HANDLER (UPDATED LOOP FIX) 🔥
   const googleCredential = searchParams.get("credential");
+  
   useEffect(() => {
-    if (googleCredential) {
+    // Check karega ki naya token mila hai AUR wo pehle use nahi hua hai
+    if (googleCredential && processedToken.current !== googleCredential) {
+      
+      // Token ko "used" mark kar do
+      processedToken.current = googleCredential;
+
       // Clean up the URL to hide the token from the user
       const cleanUrl =
         window.location.protocol +
@@ -201,7 +209,7 @@ function LoginForm() {
       // Trigger login automatically
       handleGoogleSuccess({ credential: googleCredential });
     }
-  }, [googleCredential]);
+  }, [googleCredential]); // 👈 router yahan se hata diya hai taaki baar baar render na ho
 
   return (
     <main className="relative min-h-screen overflow-x-hidden overflow-y-auto text-white flex items-center justify-center px-6 pb-12">
