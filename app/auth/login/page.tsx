@@ -146,7 +146,7 @@ function LoginForm() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-white flex items-center justify-center px-6">
+    <main className="relative min-h-screen overflow-x-hidden overflow-y-auto text-white flex items-center justify-center px-6 pb-12">
       <div className="absolute inset-0" style={{ background:"radial-gradient(ellipse 130% 90% at 65% 55%, #0f0c00 0%, #080600 45%, #000000 100%)" }} />
       <div className="absolute bottom-0 left-0 w-[520px] h-[420px] pointer-events-none" style={{ background:"radial-gradient(ellipse at 0% 100%, rgba(180,130,0,0.12) 0%, transparent 65%)" }} />
       <div className="absolute pointer-events-none" style={{ width:420, height:360, top:"18%", left:"38%", background:"radial-gradient(ellipse, rgba(200,150,0,0.09) 0%, transparent 70%)" }} />
