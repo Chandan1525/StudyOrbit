@@ -71,7 +71,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 🔥 FETCH CALLBACK URL FRON SEARCH PARAMS 🔥
+  // 🔥 FETCH CALLBACK URL FROM SEARCH PARAMS 🔥
   const callbackUrl = searchParams.get('callbackUrl');
 
   // ── Standard email/password login ────────────────────────────────────
@@ -145,6 +145,21 @@ function LoginForm() {
     }
   };
 
+  // 🔥 PWA GOOGLE REDIRECT HANDLER 🔥
+  // Catch the token if Google redirects back to this page
+  const googleCredential = searchParams.get('credential');
+  useEffect(() => {
+    if (googleCredential) {
+      // Clean up the URL to hide the token from the user
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+      
+      // Trigger login automatically
+      handleGoogleSuccess({ credential: googleCredential });
+    }
+  }, [googleCredential]);
+
+
   return (
     <main className="relative min-h-screen overflow-x-hidden overflow-y-auto text-white flex items-center justify-center px-6 pb-12">
       <div className="absolute inset-0" style={{ background:"radial-gradient(ellipse 130% 90% at 65% 55%, #0f0c00 0%, #080600 45%, #000000 100%)" }} />
@@ -181,6 +196,10 @@ function LoginForm() {
               onSuccess={handleGoogleSuccess}
               onError={() => setError("Google Login Failed. Please try again.")}
               theme="filled_black" shape="pill" text="continue_with"
+              
+              /* 🔥 PWA FIXES 👇 */
+              ux_mode="redirect" 
+              login_uri="https://study-orbit-taupe.vercel.app/api/auth/google-pwa" /* 🚨 UPDATE THIS WITH YOUR LIVE URL if needed */
             />
           </div>
 
