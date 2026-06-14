@@ -4,32 +4,42 @@ import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { LanguageProvider } from "@/context/LanguageContext";
 
+// ─── Fonts ────────────────────────────────────────────────────────────────────
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
+// Inter — body / reading copy  →  font-inter
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: 'swap',
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
+// Syne — brand / display headlines  →  font-syne
 const syne = Syne({
   variable: "--font-syne",
   subsets: ["latin"],
-  display: 'swap',
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
+
+// ─── Metadata & Viewport ─────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
   title: "StudyOrbit | The Launchpad for Your Student Career",
   description: "Share projects, discover hackathons, and join tech communities.",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -40,6 +50,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+// ─── Root Layout ─────────────────────────────────────────────────────────────
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,10 +60,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${syne.variable} h-full antialiased`}
+      className={`
+        ${geistSans.variable}
+        ${geistMono.variable}
+        ${inter.variable}
+        ${syne.variable}
+        h-full antialiased
+      `}
       suppressHydrationWarning
     >
       <head>
+        {/* Inline theme + accent-color script — runs before first paint to avoid flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -60,13 +79,11 @@ export default function RootLayout({
                   const savedPrefs = localStorage.getItem("studyorbit_preferences");
                   if (savedPrefs) {
                     const { theme, accentColor } = JSON.parse(savedPrefs);
-                    
                     if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
                       document.documentElement.classList.add("dark");
                     } else {
                       document.documentElement.classList.remove("dark");
                     }
-                    
                     if (accentColor) {
                       document.documentElement.style.setProperty("--accent-color", accentColor);
                     }
@@ -81,16 +98,19 @@ export default function RootLayout({
           }}
         />
       </head>
-      {/* Tailwind v4 automatically maps font-sans to the --font-sans variable we define in globals.css 
+
+      {/*
+        font-sans resolves to --font-sans which should be mapped to Inter
+        in your globals.css / Tailwind v4 config (see globals.css note below).
+        font-syne  →  use className="font-syne"  on headlines
+        font-inter →  use className="font-inter" on body copy / UI
       */}
       <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
-        
         <GoogleOAuthProvider clientId="58335293080-50hknia78iak3a7i8bf4ea8lu8s9cvmm.apps.googleusercontent.com">
           <LanguageProvider>
             {children}
           </LanguageProvider>
         </GoogleOAuthProvider>
-
       </body>
     </html>
   );
