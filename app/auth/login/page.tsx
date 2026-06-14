@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRef, useCallback, useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 
 // ── Topo Canvas (As it was) ────────────────────────────────────────────────────────
@@ -97,12 +97,10 @@ function LoginForm() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // 🔥 FETCH CALLBACK URL FROM SEARCH PARAMS 🔥
   const callbackUrl = searchParams.get("callbackUrl");
-
-  // 1️⃣ EK NAYA REF BANAO JO USED TOKEN KO YAAD RAKHEGA
-  const processedToken = useRef<string | null>(null);
 
   // ── Standard email/password login ────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
@@ -121,7 +119,7 @@ function LoginForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ identifier, password }),
-        },
+        }
       );
 
       const data = await response.json();
@@ -142,7 +140,7 @@ function LoginForm() {
     } catch (err: any) {
       if (err.message?.includes("fetch")) {
         setError(
-          "Cannot connect to server. Make sure backend is running on port 5000.",
+          "Cannot connect to server. Make sure backend is running on port 5000."
         );
       } else {
         setError("Something went wrong. Please try again.");
@@ -163,7 +161,7 @@ function LoginForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ credential: credentialResponse.credential }),
-        },
+        }
       );
 
       const data = await res.json();
@@ -188,28 +186,28 @@ function LoginForm() {
     }
   };
 
-  // 🔥 PWA GOOGLE REDIRECT HANDLER (UPDATED LOOP FIX) 🔥
+  // 🔥 PWA GOOGLE REDIRECT HANDLER (THE PERMANENT LOOP FIX) 🔥
   const googleCredential = searchParams.get("credential");
   
   useEffect(() => {
-    // Check karega ki naya token mila hai AUR wo pehle use nahi hua hai
-    if (googleCredential && processedToken.current !== googleCredential) {
-      
-      // Token ko "used" mark kar do
-      processedToken.current = googleCredential;
+    if (googleCredential) {
+      // 1️⃣ Token ka ek chhota unique ID banao
+      const tokenKey = `used_token_${googleCredential.substring(0, 20)}`;
 
-      // Clean up the URL to hide the token from the user
-      const cleanUrl =
-        window.location.protocol +
-        "//" +
-        window.location.host +
-        window.location.pathname;
-      window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+      // 2️⃣ Check karo ki kya browser ke session mein ye token use ho chuka hai
+      if (!sessionStorage.getItem(tokenKey)) {
+        
+        // Mark it as used permanently for this session
+        sessionStorage.setItem(tokenKey, "true");
 
-      // Trigger login automatically
-      handleGoogleSuccess({ credential: googleCredential });
+        // 3️⃣ Next.js ke router ko officially bolo ki URL se query params hata de
+        router.replace(pathname);
+
+        // 4️⃣ Finally login trigger karo
+        handleGoogleSuccess({ credential: googleCredential });
+      }
     }
-  }, [googleCredential]); // 👈 router yahan se hata diya hai taaki baar baar render na ho
+  }, [googleCredential, pathname, router]);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden overflow-y-auto text-white flex items-center justify-center px-6 pb-12">
