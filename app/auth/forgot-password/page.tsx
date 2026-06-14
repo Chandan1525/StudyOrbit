@@ -5,7 +5,7 @@ import {
   ArrowRight,
   Mail,
   ArrowLeft,
-  Loader2 // <-- Added a loader icon for the sending state
+  Loader2, // <-- Added a loader icon for the sending state
 } from "lucide-react";
 
 import Link from "next/link";
@@ -116,7 +116,7 @@ export default function ForgotPasswordPage() {
 
   // Changed state name to 'identifier' to match your backend logic (email/username/phone)
   const [identifier, setIdentifier] = useState("");
-  
+
   // New states for API handling
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -133,17 +133,22 @@ export default function ForgotPasswordPage() {
 
     try {
       // Call the backend API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier }),
+        },
+      );
 
       const data = await response.json();
 
       if (data.success) {
         // Route to verify page and pass the identifier in the URL so the next page knows who it is
-        router.push(`/auth/verify-otp?identifier=${encodeURIComponent(identifier)}`);
+        router.push(
+          `/auth/verify-otp?identifier=${encodeURIComponent(identifier)}`,
+        );
       } else {
         // Display backend error message (e.g., "User not found")
         setError(data.message || "Failed to send OTP.");
@@ -239,7 +244,7 @@ export default function ForgotPasswordPage() {
               >
                 SO
               </div>
-              <span className="text-2xl font-black tracking-wide text-white">
+              <span className="font-display text-4xl font-bold text-white">
                 Study
                 <span style={{ color: "#e05070" }}>Orbit</span>
               </span>
@@ -260,13 +265,10 @@ export default function ForgotPasswordPage() {
           </div>
 
           {/* Heading */}
-          <h2 className="text-xl font-bold text-white text-center mb-2">
+          <h2 className="font-display text-xl font-bold text-white text-center mb-2">
             Forgot your password?
           </h2>
-          <p
-            className="text-sm text-center mb-8"
-            style={{ color: "#7a5a5e" }}
-          >
+          <p className="text-sm text-center mb-8" style={{ color: "#7a5a5e" }}>
             Enter your email, username or phone number and we’ll send you a
             6-digit OTP.
           </p>
@@ -301,7 +303,7 @@ export default function ForgotPasswordPage() {
                   }}
                 />
               </div>
-              
+
               {/* Error Message Display */}
               {error && (
                 <p className="text-red-400 text-xs mt-2 font-medium px-1">

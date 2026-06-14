@@ -274,25 +274,26 @@ function LoginForm() {
           <div className="text-center mb-9">
             <Link href="/" className="inline-flex items-center gap-2 mb-5">
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-black"
+                className="font-display w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-black"
                 style={{
                   background: "linear-gradient(135deg,#f5c842,#c9a227)",
                 }}
               >
                 SO
               </div>
-              <span className="text-2xl font-black tracking-wide text-white">
+              {/* 🔥 ADDED: font-display class 🔥 */}
+              <span className="font-display text-2xl font-black tracking-wide text-white">
                 Study<span style={{ color: "#c9a227" }}>Orbit</span>
               </span>
             </Link>
-            <h2 className="text-xl font-bold text-white mb-1">Welcome back</h2>
+            {/* 🔥 ADDED: font-display class 🔥 */}
+            <h2 className="font-display text-xl font-bold text-white mb-1">Welcome back</h2>
             <p className="text-sm" style={{ color: "#7a6a4a" }}>
               Sign in to your student ecosystem
             </p>
           </div>
 
           {/* Google */}
-          {/* Google Button (UPDATED PWA FIX) */}
           <div className="flex justify-center mb-6 w-full">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
@@ -301,7 +302,6 @@ function LoginForm() {
               shape="pill"
               text="continue_with"
               ux_mode="redirect"
-              // 🔥 Ye line automatically detect karegi ki tum Localhost pe ho ya Vercel pe
               login_uri={
                 typeof window !== "undefined"
                   ? `${window.location.origin}/api/auth/google-pwa`
@@ -363,8 +363,8 @@ function LoginForm() {
                   style={{
                     background: "rgba(255,255,255,0.03)",
                     border: "1px solid rgba(200,160,40,0.15)",
-                    WebkitUserSelect: "text", // 🔥 iOS KEYBOARD FIX
-                    userSelect: "text", // 🔥 iOS KEYBOARD FIX
+                    WebkitUserSelect: "text", 
+                    userSelect: "text", 
                   }}
                 />
               </div>
@@ -401,8 +401,8 @@ function LoginForm() {
                   style={{
                     background: "rgba(255,255,255,0.03)",
                     border: "1px solid rgba(200,160,40,0.15)",
-                    WebkitUserSelect: "text", // 🔥 iOS KEYBOARD FIX
-                    userSelect: "text", // 🔥 iOS KEYBOARD FIX
+                    WebkitUserSelect: "text", 
+                    userSelect: "text", 
                   }}
                 />
                 <button

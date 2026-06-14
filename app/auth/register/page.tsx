@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useCallback, useEffect, useState } from "react";
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from "@react-oauth/google";
 
 // ───────────────── BACKGROUND ─────────────────
 function TopoCanvas() {
@@ -126,19 +126,22 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            username,
+            email,
+            mobile: phone,
+            password,
+          }),
         },
-        body: JSON.stringify({
-          name,
-          username,
-          email,
-          mobile: phone,
-          password,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -156,11 +159,14 @@ export default function RegisterPage() {
   // ───────────────── GOOGLE REGISTER ─────────────────
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: credentialResponse.credential }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/google`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: credentialResponse.credential }),
+        },
+      );
 
       const data = await res.json();
 
@@ -262,7 +268,7 @@ export default function RegisterPage() {
                 SO
               </div>
 
-              <span className="text-2xl font-black tracking-wide text-white">
+              <span className="font-display text-2xl font-black tracking-wide text-white">
                 Study
                 <span
                   style={{
@@ -274,7 +280,7 @@ export default function RegisterPage() {
               </span>
             </Link>
 
-            <h2 className="text-lg font-bold text-white mb-1">
+            <h2 className="font-display text-lg font-bold text-white mb-1">
               Create account
             </h2>
 
@@ -293,8 +299,8 @@ export default function RegisterPage() {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => {
-                console.log('Google Registration Failed');
-                alert('Google Registration Failed. Please try again.');
+                console.log("Google Registration Failed");
+                alert("Google Registration Failed. Please try again.");
               }}
               theme="filled_black"
               shape="pill"

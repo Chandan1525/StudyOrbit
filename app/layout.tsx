@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Syne } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { LanguageProvider } from "@/context/LanguageContext"; // 🟢 Language Provider
+import { LanguageProvider } from "@/context/LanguageContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,23 +14,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// 🔥 PWA Manifest linked here
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: "StudyOrbit",
-  description: "Your modern learning platform",
+  title: "StudyOrbit | The Launchpad for Your Student Career",
+  description: "Share projects, discover hackathons, and join tech communities.",
   manifest: "/manifest.json", 
 };
 
-// 🔥 Mobile status bar color for true Native App feel
 export const viewport: Viewport = {
   themeColor: "#0a0a0a",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,       // 🔥 Prevents iOS auto-zoom bug on inputs
-  userScalable: false,   // 🔥 Locks the UI like a real Native App
+  maximumScale: 1,
+  userScalable: false,
 };
 
-// 🟢 SIRF EK BAAR ROOT LAYOUT
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,11 +48,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${syne.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* 🔥 PROJECT-WIDE THEME & ACCENT INITIALIZER 🔥 */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -53,14 +61,12 @@ export default function RootLayout({
                   if (savedPrefs) {
                     const { theme, accentColor } = JSON.parse(savedPrefs);
                     
-                    // 1. Theme Mode Sync
                     if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
                       document.documentElement.classList.add("dark");
                     } else {
                       document.documentElement.classList.remove("dark");
                     }
                     
-                    // 2. Accent Color Custom Property Variable Setup
                     if (accentColor) {
                       document.documentElement.style.setProperty("--accent-color", accentColor);
                     }
@@ -75,10 +81,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+      {/* Tailwind v4 automatically maps font-sans to the --font-sans variable we define in globals.css 
+      */}
+      <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
         
         <GoogleOAuthProvider clientId="58335293080-50hknia78iak3a7i8bf4ea8lu8s9cvmm.apps.googleusercontent.com">
-          {/* 🟢 LANGUAGE PROVIDER WRAPPER */}
           <LanguageProvider>
             {children}
           </LanguageProvider>

@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
       title: "1. Information We Collect",
       content: (
         <>
-          <p className="mb-3">When you use StudyOrbit, we collect the following types of information:</p>
+          <p className="mb-4">When you use StudyOrbit, we collect the following types of information:</p>
           <ul className="list-disc pl-5 space-y-2 text-gray-400">
             <li><strong>Account Information:</strong> Name, email address, password, and profile picture.</li>
             <li><strong>Profile Data:</strong> Skills, projects, GitHub/LinkedIn links, and educational details you choose to share.</li>
@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
       title: "2. How We Use Your Information",
       content: (
         <>
-          <p className="mb-3">We use the collected data to provide, maintain, and improve our services, specifically to:</p>
+          <p className="mb-4">We use the collected data to provide, maintain, and improve our services, specifically to:</p>
           <ul className="list-disc pl-5 space-y-2 text-gray-400">
             <li>Create and secure your StudyOrbit account.</li>
             <li>Facilitate networking and display your profile to other students and recruiters.</li>
@@ -100,7 +100,7 @@ export default function PrivacyPolicyPage() {
             <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-gray-700 to-gray-900 flex items-center justify-center border border-gray-600 shadow-lg">
               <Shield className="text-gray-300" size={24} />
             </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white">
+            <h1 className="font-display text-4xl md:text-5xl font-black tracking-tight text-white">
               Privacy Policy
             </h1>
           </div>
@@ -115,27 +115,28 @@ export default function PrivacyPolicyPage() {
           className="space-y-12"
         >
           <div className="prose prose-invert prose-gray max-w-none">
-            <p className="text-gray-300 text-lg leading-relaxed mb-10">
+            <p className="text-gray-300 text-lg leading-relaxed mb-10 text-justify">
               Welcome to StudyOrbit. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our website and tell you about your privacy rights.
             </p>
 
             {sections.map((section, index) => (
               <div key={index} className="mb-10">
-                <h2 className="text-2xl font-bold mb-4 text-gray-100 border-b border-gray-800 pb-2">
+                <h2 className="font-display text-2xl font-bold mb-5 text-gray-100 border-b border-gray-800 pb-3">
                   {section.title}
                 </h2>
-                <div className="text-gray-400 leading-relaxed text-base">
+                {/* 🔥 YAHAN CHANGE KIYA HAI: text-justify aur thoda extra spacing add kiya hai 🔥 */}
+                <div className="text-gray-400 leading-relaxed text-base text-justify">
                   {section.content}
                 </div>
               </div>
             ))}
 
             <div className="mt-16 p-6 rounded-2xl bg-gradient-to-b from-gray-800/50 to-gray-900/50 border border-gray-800 text-center">
-              <h3 className="text-xl font-bold mb-2 text-gray-200">Contact Us</h3>
+              <h3 className="font-display text-xl font-bold mb-2 text-gray-200">Contact Us</h3>
               <p className="text-gray-400 mb-4">
                 If you have any questions about this Privacy Policy, please contact us.
               </p>
-              <a href="mailto:privacy@studyorbit.com" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
+              <a href="mailto:studyorbit11@gmail.com" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
                 studyorbit11@gmail.com
               </a>
             </div>

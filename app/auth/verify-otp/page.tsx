@@ -99,7 +99,7 @@ function TopoCanvas() {
 function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Get the email/username passed from the previous page
   const identifier = searchParams.get("identifier");
 
@@ -125,7 +125,7 @@ function VerifyOtpContent() {
   // ───────────────── BACKSPACE ─────────────────
   const handleBackspace = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
@@ -150,17 +150,22 @@ function VerifyOtpContent() {
     setError("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, otp: finalOtp }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/verify-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier, otp: finalOtp }),
+        },
+      );
 
       const data = await response.json();
 
       if (data.success) {
         // Pass the identifier to the final reset password page
-        router.push(`/auth/reset-password?identifier=${encodeURIComponent(identifier)}`);
+        router.push(
+          `/auth/reset-password?identifier=${encodeURIComponent(identifier)}`,
+        );
       } else {
         // Show backend error (e.g., "Invalid OTP" or "OTP Expired")
         setError(data.message || "Invalid OTP.");
@@ -187,11 +192,14 @@ function VerifyOtpContent() {
 
     try {
       // Re-trigger the forgot-password endpoint to send a new email
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier }),
+        },
+      );
 
       const data = await response.json();
 
@@ -236,7 +244,7 @@ function VerifyOtpContent() {
             >
               SO
             </div>
-            <span className="text-3xl font-black">
+            <span className="font-display text-3xl font-black">
               Study<span className="text-pink-400">Orbit</span>
             </span>
           </Link>
@@ -256,9 +264,12 @@ function VerifyOtpContent() {
         </div>
 
         {/* Heading */}
-        <h2 className="text-2xl font-bold text-center mb-3">Verify OTP</h2>
+        <h2 className="font-display text-2xl font-bold text-center mb-3">
+          Verify OTP
+        </h2>
         <p className="text-sm text-center mb-8" style={{ color: "#9ca3af" }}>
-          Enter the 6-digit OTP sent to {identifier ? <strong>{identifier}</strong> : "your account"}.
+          Enter the 6-digit OTP sent to{" "}
+          {identifier ? <strong>{identifier}</strong> : "your account"}.
         </p>
 
         {/* OTP Inputs */}
