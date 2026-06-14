@@ -208,7 +208,13 @@ function LoginForm() {
                 <input type="text" placeholder="Enter your email or username"
                   value={identifier} onChange={e => setIdentifier(e.target.value)}
                   className="w-full pl-11 pr-5 py-3.5 rounded-2xl text-sm text-white placeholder-[#4a3e28] outline-none"
-                  style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(200,160,40,0.15)" }} />
+                  style={{ 
+                    background:"rgba(255,255,255,0.03)", 
+                    border:"1px solid rgba(200,160,40,0.15)",
+                    WebkitUserSelect: "text", // 🔥 iOS KEYBOARD FIX
+                    userSelect: "text"        // 🔥 iOS KEYBOARD FIX
+                  }} 
+                />
               </div>
             </div>
 
@@ -222,7 +228,13 @@ function LoginForm() {
                 <input type={showPassword ? "text" : "password"} placeholder="Enter your password"
                   value={password} onChange={e => setPassword(e.target.value)}
                   className="w-full pl-11 pr-12 py-3.5 rounded-2xl text-sm text-white placeholder-[#4a3e28] outline-none"
-                  style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(200,160,40,0.15)" }} />
+                  style={{ 
+                    background:"rgba(255,255,255,0.03)", 
+                    border:"1px solid rgba(200,160,40,0.15)",
+                    WebkitUserSelect: "text", // 🔥 iOS KEYBOARD FIX
+                    userSelect: "text"        // 🔥 iOS KEYBOARD FIX
+                  }} 
+                />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2">
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>

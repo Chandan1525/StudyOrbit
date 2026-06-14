@@ -24,6 +24,10 @@ export const metadata: Metadata = {
 // 🔥 Mobile status bar color for true Native App feel
 export const viewport: Viewport = {
   themeColor: "#0a0a0a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,       // 🔥 Prevents iOS auto-zoom bug on inputs
+  userScalable: false,   // 🔥 Locks the UI like a real Native App
 };
 
 // 🟢 SIRF EK BAAR ROOT LAYOUT
