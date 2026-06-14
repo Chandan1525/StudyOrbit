@@ -319,9 +319,9 @@ export default function HeroSection() {
             {/* Stats */}
             <div className="flex gap-8 pt-8 border-t border-white/10">
               {[
-                { val: "12K+", lbl: "Students joined" },
-                { val: "340+", lbl: "Active communities" },
-                { val: "1.8K+", lbl: "Projects shared" },
+                { val: "50+", lbl: "Students joined" },
+                { val: "10+", lbl: "Active communities" },
+                { val: "20+", lbl: "Projects shared" },
               ].map(({ val, lbl }) => (
                 <div key={lbl}>
                   {/* font-display = Syne for brand numbers */}
