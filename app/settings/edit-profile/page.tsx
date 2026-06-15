@@ -196,7 +196,7 @@ const handleSubmit = async (e: any) => {
           >
             <ArrowLeft size={18} className="text-white" />
           </button>
-          <h1 className="text-xl font-black text-white">Edit Profile</h1>
+          <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white tracking-tight">Edit Profile</h1>
         </div>
         <motion.button
           type="button"

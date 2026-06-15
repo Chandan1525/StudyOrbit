@@ -15,8 +15,8 @@ import {
   Check,
   ArrowLeft,
   Zap,
-  Loader2, 
-  Presentation
+  Loader2,
+  Presentation,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -27,7 +27,8 @@ const API = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 const socket = io(API);
 
 const getAuthHeaders = () => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return { Authorization: `Bearer ${token}` };
 };
 
@@ -101,9 +102,11 @@ function CommunityInterface() {
       if (!token) {
         // Build full path to redirect back
         const currentPath = `${pathname}${preSelectedChannel ? `?channel=${preSelectedChannel}` : ""}`;
-        
+
         // 🔥 FIX: Yahan /login ko badal kar /auth/login kar diya 🔥
-        router.push(`/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`);
+        router.push(
+          `/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`,
+        );
       } else {
         // Token mil gaya, UI render hone do
         setIsCheckingAuth(false);
@@ -113,7 +116,7 @@ function CommunityInterface() {
 
   const handleBoardClick = () => {
     setBoardComingSoon(true);
-    setTimeout(() => setBoardComingSoon(false), 3000); 
+    setTimeout(() => setBoardComingSoon(false), 3000);
   };
 
   useEffect(() => {
@@ -247,7 +250,12 @@ function CommunityInterface() {
 
   // 🔥 SEND MESSAGE LOGIC 🔥
   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && !selectedImage) || !currentUser || !activeChannel) return;
+    if (
+      (!newMessage.trim() && !selectedImage) ||
+      !currentUser ||
+      !activeChannel
+    )
+      return;
 
     setIsUploading(true);
     const msgId = Date.now().toString();
@@ -259,7 +267,7 @@ function CommunityInterface() {
 
     const newMsg = {
       id: msgId,
-      _id: msgId, 
+      _id: msgId,
       user: currentUser?.name || currentUser?.username || "Student",
       role: "Member",
       time: new Date().toLocaleTimeString("en-IN", {
@@ -267,7 +275,7 @@ function CommunityInterface() {
         minute: "2-digit",
       }),
       text: newMessage.trim(),
-      image: localImageUrl, 
+      image: localImageUrl,
       avatar: (currentUser?.name || currentUser?.username || "S")
         .charAt(0)
         .toUpperCase(),
@@ -275,7 +283,7 @@ function CommunityInterface() {
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
-    
+
     const textToSend = newMessage.trim();
     const fileToSend = selectedImage;
 
@@ -292,36 +300,43 @@ function CommunityInterface() {
 
     const formData = new FormData();
     if (textToSend) formData.append("text", textToSend);
-    if (fileToSend) formData.append("image", fileToSend); 
+    if (fileToSend) formData.append("image", fileToSend);
 
     try {
       const res = await axios.post(
         `${API}/api/community/${encodeURIComponent(activeChannel.name)}/messages`,
-        formData, 
-        { 
+        formData,
+        {
           headers: {
             ...getAuthHeaders(),
             "Content-Type": "multipart/form-data",
-          } 
+          },
         },
       );
 
       if (fileToSend) {
-         const finalMsg = {
-            ...newMsg,
-            image: res.data.image, 
-            _id: res.data._id,
-            id: res.data._id
-         };
-         socket.emit("send_community_message", {
-            channel: activeChannel.name,
-            message: finalMsg,
-          });
+        const finalMsg = {
+          ...newMsg,
+          image: res.data.image,
+          _id: res.data._id,
+          id: res.data._id,
+        };
+        socket.emit("send_community_message", {
+          channel: activeChannel.name,
+          message: finalMsg,
+        });
       }
 
       setChatMessages((prev) =>
         prev.map((m) =>
-          m.id === msgId ? { ...m, _id: res.data._id, id: res.data._id, image: res.data.image || m.image } : m,
+          m.id === msgId
+            ? {
+                ...m,
+                _id: res.data._id,
+                id: res.data._id,
+                image: res.data.image || m.image,
+              }
+            : m,
         ),
       );
     } catch (err) {
@@ -422,12 +437,10 @@ function CommunityInterface() {
           className={`${activeChannel ? "hidden md:flex" : "flex w-full"} md:w-[320px] md:max-w-[320px] border-r border-gray-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl flex-col h-full flex-shrink-0 z-20 transition-colors`}
         >
           <div className="h-20 px-6 flex items-center gap-2 border-b border-gray-200/80 dark:border-slate-800/80 flex-shrink-0 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shadow-lg transition-colors hidden md:flex">
-              <Zap size={18} className="text-white" />
-            </div>
             <div>
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">
-                Study<span className="text-accent">Orbit</span>
+              {/* 🔥 ICON REMOVED, FONT DISPLAY & BRAND COLOR APPLIED 🔥 */}
+              <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white tracking-tight transition-colors">
+                Study<span className="text-[#6c63ff]">Orbit</span>
               </h1>
             </div>
           </div>
@@ -484,12 +497,12 @@ function CommunityInterface() {
                     style={{ background: channel.bg }}
                   >
                     <div className="absolute -top-5 -right-5 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
-                    
+
                     <div className="relative z-10 flex items-start justify-between w-full">
                       <div className="w-9 h-9 rounded-[14px] bg-white/15 backdrop-blur-xl flex items-center justify-center text-lg text-white shadow-sm flex-shrink-0">
                         💬
                       </div>
-                      
+
                       {liveCount > 0 ? (
                         <div className="px-2 py-0.5 rounded-full bg-black/30 text-[9px] text-green-300 font-bold flex items-center gap-1.5 uppercase border border-green-400/20 shadow-sm flex-shrink-0">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
@@ -511,10 +524,15 @@ function CommunityInterface() {
                       <p className="text-white/90 mt-1 font-bold text-[13px] leading-none truncate">
                         {channel.name}
                       </p>
-                      
-                      <div className={`text-[11px] mt-2.5 flex items-center gap-1.5 font-medium leading-none ${liveCount > 0 ? "text-green-300 font-bold" : "text-white/60"}`}>
-                        <span className={`w-1.5 h-1.5 flex-shrink-0 rounded-full ${liveCount > 0 ? "bg-green-400 animate-pulse" : "bg-white/30"}`} />
-                        {liveCount} {liveCount === 1 ? "Member" : "Members"} Online
+
+                      <div
+                        className={`text-[11px] mt-2.5 flex items-center gap-1.5 font-medium leading-none ${liveCount > 0 ? "text-green-300 font-bold" : "text-white/60"}`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 flex-shrink-0 rounded-full ${liveCount > 0 ? "bg-green-400 animate-pulse" : "bg-white/30"}`}
+                        />
+                        {liveCount} {liveCount === 1 ? "Member" : "Members"}{" "}
+                        Online
                       </div>
                     </div>
                   </button>
@@ -552,12 +570,12 @@ function CommunityInterface() {
                     </h2>
 
                     <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 font-medium">
-                      {liveCounts[activeChannel.name] || 0} members currently online
+                      {liveCounts[activeChannel.name] || 0} members currently
+                      online
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  
                   {/* 🔥 COLLAB BOARD TEASER BUTTON 🔥 */}
                   <button
                     onClick={handleBoardClick}
@@ -623,7 +641,11 @@ function CommunityInterface() {
                           {/* 🔥 RENDER UPLOADED IMAGE IF IT EXISTS 🔥 */}
                           {msg.image && (
                             <div className="mt-2 mb-3">
-                              <img src={msg.image} alt="attached" className="max-w-[250px] md:max-w-xs rounded-[16px] border border-gray-200 dark:border-slate-700 shadow-sm object-cover" />
+                              <img
+                                src={msg.image}
+                                alt="attached"
+                                className="max-w-[250px] md:max-w-xs rounded-[16px] border border-gray-200 dark:border-slate-700 shadow-sm object-cover"
+                              />
                             </div>
                           )}
 
@@ -715,13 +737,24 @@ function CommunityInterface() {
               {/* ── FIXED MESSAGE INPUT AREA (WITH IMAGE PREVIEW) ── */}
               <div className="w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-4 py-3 flex-shrink-0 mb-20 z-10 border-t border-gray-200/80 dark:border-slate-800 transition-colors">
                 <div className="max-w-4xl mx-auto flex flex-col gap-2">
-                  
                   {/* 🔥 IMAGE PREVIEW BOX 🔥 */}
                   <AnimatePresence>
                     {imagePreview && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="relative w-max inline-block mb-1">
-                        <img src={imagePreview} alt="preview" className="h-20 w-auto rounded-lg border-2 border-accent object-cover shadow-sm" />
-                        <button onClick={handleRemoveImage} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition shadow-md border-2 border-white dark:border-slate-900">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="relative w-max inline-block mb-1"
+                      >
+                        <img
+                          src={imagePreview}
+                          alt="preview"
+                          className="h-20 w-auto rounded-lg border-2 border-accent object-cover shadow-sm"
+                        />
+                        <button
+                          onClick={handleRemoveImage}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition shadow-md border-2 border-white dark:border-slate-900"
+                        >
                           <X size={12} strokeWidth={3} />
                         </button>
                       </motion.div>
@@ -729,32 +762,45 @@ function CommunityInterface() {
                   </AnimatePresence>
 
                   <div className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-[24px] px-3 py-2 shadow-sm transition-colors focus-within:ring-2 ring-accent">
-                    
                     {/* 🔥 HIDDEN FILE INPUT 🔥 */}
-                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
 
-                    <button 
+                    <button
                       onClick={() => fileInputRef.current?.click()}
                       className="w-10 h-10 flex-shrink-0 rounded-[14px] bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition flex items-center justify-center text-gray-500 dark:text-white border border-gray-100 dark:border-slate-700 active:scale-95"
                     >
                       <Plus size={18} />
                     </button>
-                    
+
                     <input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handleSendMessage()
+                      }
                       disabled={isUploading}
                       placeholder={`Message ${activeChannel.name} Community...`}
                       className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-400 dark:placeholder:text-white/30 text-gray-900 dark:text-white px-2 disabled:opacity-50"
                     />
-                    
+
                     <button
                       onClick={handleSendMessage}
-                      disabled={(!newMessage.trim() && !selectedImage) || isUploading}
+                      disabled={
+                        (!newMessage.trim() && !selectedImage) || isUploading
+                      }
                       className="px-5 py-2.5 rounded-[14px] bg-accent hover:opacity-90 transition font-bold shadow-md shadow-accent/20 disabled:opacity-50 text-white text-sm flex items-center gap-2"
                     >
-                      {isUploading ? <Loader2 size={16} className="animate-spin" /> : "Send"}
+                      {isUploading ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        "Send"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -772,10 +818,11 @@ function CommunityInterface() {
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] bg-accent flex items-center justify-center text-3xl md:text-4xl shadow-xl mb-6 shadow-accent/20 text-white transition-colors">
                   🚀
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-3 text-gray-900 dark:text-white">
+                {/* 🔥 FONT DISPLAY & BRAND COLOR APPLIED 🔥 */}
+                <h2 className="font-display text-3xl md:text-4xl font-black tracking-tight mb-3 text-gray-900 dark:text-white">
                   Welcome to{" "}
-                  <span className="text-accent transition-colors">
-                    StudyOrbit
+                  <span className="transition-colors">
+                    Study<span className="text-[#6c63ff]">Orbit</span>
                   </span>
                 </h2>
                 <p className="text-gray-500 dark:text-white/50 text-sm font-medium leading-relaxed mb-8 px-2">

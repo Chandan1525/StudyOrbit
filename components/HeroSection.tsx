@@ -5,6 +5,176 @@ import Link from "next/link";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+// ─── 3D Fluid WebGL Background ───────────────────────────────────────────────
+
+function FluidBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+
+    // Vertex Shader: Maps the canvas to a 2D plane
+    const vsSource = `
+      attribute vec2 position;
+      void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+
+    // Fragment Shader: Generates the 3D fluid silk effect
+    const fsSource = `
+      precision highp float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      // Classic rotation and noise functions
+      mat2 rot(float a) {
+          float s = sin(a), c = cos(a);
+          return mat2(c, -s, s, c);
+      }
+
+      float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+
+      float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      // Fractional Brownian Motion for the fluid ripples
+      float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          vec2 shift = vec2(100.0);
+          for (int i = 0; i < 6; ++i) {
+              v += a * noise(p);
+              p = rot(0.5) * p * 2.0 + shift;
+              a *= 0.5;
+          }
+          return v;
+      }
+
+      void main() {
+          // Normalize coordinates
+          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+
+          // Domain warping (feeding noise into noise to get liquid folds)
+          vec2 q = vec2(0.0);
+          q.x = fbm(uv + 0.1 * u_time);
+          q.y = fbm(uv + vec2(1.0));
+
+          vec2 r = vec2(0.0);
+          // Slowed down the time multiplier for a heavy, viscous liquid feel
+          r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.05 * u_time);
+          r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.05 * u_time);
+
+          float f = fbm(uv + r);
+
+          // Brand Colors
+          vec3 colorBlack = vec3(0.02, 0.02, 0.04); // Deep background black
+          vec3 colorPurple = vec3(0.42, 0.39, 1.0); // #6c63ff
+          vec3 colorTeal = vec3(0.24, 0.81, 0.68);  // #3ecfad
+
+          // Mix colors based on the noise coordinates to create flowing gradients
+          vec3 col = mix(colorBlack, colorPurple, clamp((f * f) * 1.5, 0.0, 1.0));
+          col = mix(col, colorTeal, clamp(length(q) * 0.3, 0.0, 1.0));
+          col = mix(col, colorBlack, clamp(length(r.x) * 1.5, 0.0, 1.0));
+
+          // Fake 3D Specular lighting (the shiny silk highlights)
+          float highlight = smoothstep(0.3, 0.7, f);
+          col += highlight * vec3(0.15, 0.15, 0.2);
+
+          // Vignette / Deepen overall shadows
+          col *= smoothstep(0.0, 0.8, f + 0.3);
+
+          gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    // Boilerplate WebGL setup
+    function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+      const shader = gl.createShader(type);
+      if (!shader) return null;
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+
+    if (!program || !vertexShader || !fragmentShader) return;
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // Create a full-screen quad
+    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const positionLocation = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    const timeLocation = gl.getUniformLocation(program, "u_time");
+
+    const resize = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+    };
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    let animationFrameId: number;
+    let startTime = performance.now();
+
+    const render = (time: number) => {
+      const elapsedTime = (time - startTime) / 1000;
+      gl.uniform1f(timeLocation, elapsedTime);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+    />
+  );
+}
+
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const FEED_POSTS = [
@@ -95,179 +265,24 @@ const COMMUNITIES = [
   "🧬 Bioinformatics",
 ];
 
-// ─── 3-D Particle Canvas ──────────────────────────────────────────────────────
-
-function ParticleCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animId: number;
-
-    function resize() {
-      if (!canvas) return;
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    // Brand colours with alpha placeholder
-    const COLORS = [
-      "rgba(108,99,255,",  // purple
-      "rgba(62,207,173,",  // teal
-      "rgba(157,149,245,", // soft lavender
-      "rgba(66,184,245,",  // blue
-    ] as const;
-
-    function rand(min: number, max: number) {
-      return Math.random() * (max - min) + min;
-    }
-
-    // Particles
-    const COUNT = 90;
-    type Particle = {
-      x: number; y: number; z: number;
-      vx: number; vy: number;
-      color: string; size: number; opacity: number;
-    };
-    const particles: Particle[] = Array.from({ length: COUNT }, () => ({
-      x: rand(0, 1),
-      y: rand(0, 1),
-      z: rand(0.2, 1),
-      vx: rand(-0.00012, 0.00012),
-      vy: rand(-0.00008, 0.00008),
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      size: rand(1.2, 3.5),
-      opacity: rand(0.3, 0.85),
-    }));
-
-    // Drifting light streaks
-    type Streak = {
-      x1: number; y1: number; x2: number; y2: number;
-      vx1: number; vy1: number; vx2: number; vy2: number;
-      color: string; opacity: number;
-    };
-    const streaks: Streak[] = Array.from({ length: 12 }, () => ({
-      x1: rand(0, 0.55), y1: rand(0.1, 0.9),
-      x2: rand(0, 0.55), y2: rand(0.1, 0.9),
-      vx1: rand(-0.00008, 0.00008), vy1: rand(-0.00006, 0.00006),
-      vx2: rand(-0.00008, 0.00008), vy2: rand(-0.00006, 0.00006),
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      opacity: rand(0.04, 0.12),
-    }));
-
-    function draw() {
-      if (!canvas || !ctx) return;
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      // Draw streaks
-      for (const s of streaks) {
-        s.x1 += s.vx1; s.y1 += s.vy1;
-        s.x2 += s.vx2; s.y2 += s.vy2;
-        if (s.x1 < 0 || s.x1 > 1) s.vx1 *= -1;
-        if (s.y1 < 0 || s.y1 > 1) s.vy1 *= -1;
-        if (s.x2 < 0 || s.x2 > 1) s.vx2 *= -1;
-        if (s.y2 < 0 || s.y2 > 1) s.vy2 *= -1;
-        ctx.beginPath();
-        ctx.moveTo(s.x1 * W, s.y1 * H);
-        ctx.lineTo(s.x2 * W, s.y2 * H);
-        ctx.strokeStyle = s.color + s.opacity + ")";
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      }
-
-      // Draw particles depth-sorted: far → near
-      const sorted = [...particles].sort((a, b) => a.z - b.z);
-      for (let i = 0; i < sorted.length; i++) {
-        const p = sorted[i];
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = 1;
-        if (p.x > 1) p.x = 0;
-        if (p.y < 0) p.y = 1;
-        if (p.y > 1) p.y = 0;
-
-        const px = p.x * W;
-        const py = p.y * H;
-        const r = p.size * p.z;
-
-        // Glow halo
-        const grd = ctx.createRadialGradient(px, py, 0, px, py, r * 2.8);
-        grd.addColorStop(0, p.color + p.opacity * p.z + ")");
-        grd.addColorStop(1, p.color + "0)");
-        ctx.beginPath();
-        ctx.arc(px, py, r * 2.8, 0, Math.PI * 2);
-        ctx.fillStyle = grd;
-        ctx.fill();
-
-        // Constellation lines between nearby particles
-        for (let j = i + 1; j < sorted.length; j++) {
-          const q = sorted[j];
-          const dx = (p.x - q.x) * W;
-          const dy = (p.y - q.y) * H;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 80) {
-            const alpha = (1 - dist / 80) * 0.07 * Math.min(p.z, q.z);
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(q.x * W, q.y * H);
-            ctx.strokeStyle = p.color + alpha + ")";
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      }
-
-      animId = requestAnimationFrame(draw);
-    }
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="absolute inset-0 w-full h-full pointer-events-none z-0"
-    />
-  );
-}
-
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 
 export default function HeroSection() {
   return (
     <>
-      {/* ── Main hero wrapper ── */}
-      <section className="relative max-w-[1200px] mx-auto overflow-hidden bg-[#0a0a0f]">
-        {/* 3-D canvas background */}
-        <ParticleCanvas />
+      {/* ── Main hero wrapper — full width, no max-width so background spans whole screen ── */}
+      <section className="relative w-full overflow-hidden bg-black">
+        {/* WebGL Fluid Background — spans full section */}
+        <FluidBackground />
 
-        {/* Radial colour blobs layered above canvas */}
+        {/* Bottom fade so the fluid blends smoothly into the next (flat black) section */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 z-[1] pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(ellipse 55% 60% at 28% 50%, rgba(108,99,255,0.10) 0%, transparent 70%), " +
-              "radial-gradient(ellipse 38% 42% at 80% 28%, rgba(62,207,173,0.07) 0%, transparent 60%)",
-          }}
+          className="absolute bottom-0 left-0 w-full h-[220px] bg-gradient-to-b from-transparent to-black z-[1] pointer-events-none"
         />
 
-        {/* Content grid */}
-        <div className="relative z-[2] grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-0 items-center px-6 md:px-10 py-16 md:py-20 min-h-[calc(100vh-60px)]">
-
+        {/* Content grid — constrained to max-w-[1400px] and centered */}
+        <div className="relative z-[2] max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-0 items-center px-6 md:px-10 py-16 md:py-20 min-h-screen">
           {/* ── Left: Copy ── */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -342,11 +357,11 @@ export default function HeroSection() {
             {/* Fade masks */}
             <div
               aria-hidden="true"
-              className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-[#0a0a0f] to-transparent z-10 pointer-events-none"
+              className="absolute top-0 left-0 w-full h-[80px] bg-gradient-to-b from-black/80 to-transparent z-10 pointer-events-none"
             />
             <div
               aria-hidden="true"
-              className="absolute bottom-0 left-0 w-full h-[120px] bg-gradient-to-t from-[#0a0a0f] to-transparent z-10 pointer-events-none"
+              className="absolute bottom-0 left-0 w-full h-[120px] bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none"
             />
 
             {/* Animated feed — duplicated for seamless loop */}
@@ -366,7 +381,8 @@ export default function HeroSection() {
                     duration: 0.5,
                   }}
                   whileHover={{ borderColor: "rgba(255,255,255,0.15)" }}
-                  className="bg-[#111118] border border-white/5 rounded-[14px] p-4 transition-colors"
+                  // Adjusted background opacity slightly so the fluid shows through the cards
+                  className="bg-[#111118]/80 backdrop-blur-md border border-white/5 rounded-[14px] p-4 transition-colors"
                 >
                   {/* Post header */}
                   <div className="flex items-center gap-3 mb-3">
@@ -420,7 +436,7 @@ export default function HeroSection() {
       {/* ── Community strip ── */}
       <div
         id="community"
-        className="bg-[#111118] border-y border-white/5 py-4 overflow-hidden flex"
+        className="bg-[#111118] border-y border-white/5 py-4 overflow-hidden flex relative z-[2]"
       >
         <motion.div
           animate={{ x: [0, -1200] }}

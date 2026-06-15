@@ -35,7 +35,7 @@ export default function SearchPage() {
   const [dbPosts, setDbPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-// 2. Fetch Data from Backend
+  // 2. Fetch Data from Backend
   useEffect(() => {
     const fetchSearchData = async () => {
       try {
@@ -44,13 +44,18 @@ export default function SearchPage() {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch Users
-        const usersRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users`, { headers });
+        const usersRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/users`,
+          { headers },
+        );
         setDbUsers(usersRes.data.users || usersRes.data || []);
 
         // Fetch Posts (Dhyan rahe, yahan sirf ek baar 'const postsRes' likha hai)
-        const postsRes = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts`, { headers });
+        const postsRes = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts`,
+          { headers },
+        );
         setDbPosts(postsRes.data || []);
-
       } catch (error) {
         console.error("Error fetching search data:", error);
       } finally {
@@ -162,7 +167,8 @@ export default function SearchPage() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white transition-colors">
+            {/* 🔥 FONT DISPLAY APPLIED 🔥 */}
+            <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white transition-colors">
               Explore
             </h1>
             <p className="text-sm text-gray-500 dark:text-slate-400 transition-colors">
@@ -436,7 +442,8 @@ export default function SearchPage() {
         <div className="px-5 mt-7">
           <div className="flex items-center gap-2 mb-5">
             <Flame size={22} className="text-orange-500" />
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white transition-colors">
+            {/* 🔥 FONT DISPLAY APPLIED 🔥 */}
+            <h2 className="font-display text-2xl font-black text-gray-900 dark:text-white transition-colors">
               Trending Topics
             </h2>
           </div>

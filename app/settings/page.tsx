@@ -274,7 +274,7 @@ export default function SettingsPage() {
             <Settings size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-gray-900 dark:text-white transition-colors">
+            <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               Settings
             </h1>
             <p className="text-xs text-gray-400 dark:text-slate-500 font-medium">

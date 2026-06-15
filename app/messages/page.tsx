@@ -388,7 +388,8 @@ function ChatInterface() {
         >
           <div className="h-20 px-6 flex items-center border-b border-gray-200/80 dark:border-slate-800/80 flex-shrink-0 transition-colors justify-between relative">
             <div>
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              {/* 🔥 FONT DISPLAY APPLIED 🔥 */}
+              <h1 className="font-display text-xl font-black text-gray-900 dark:text-white tracking-tight">
                 Messages
               </h1>
               <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 font-medium">

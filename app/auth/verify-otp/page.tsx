@@ -4,93 +4,157 @@ import { motion } from "framer-motion";
 import { ShieldCheck, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useCallback, useEffect, useState, Suspense } from "react";
+import { useRef, useEffect, useState, Suspense } from "react";
 
-// ───────────────── BACKGROUND ─────────────────
-function TopoCanvas() {
+// ─── 3D Fluid WebGL Background (Emerald & Cyan Theme) ────────────────────────
+function FluidBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-  const timeRef = useRef<number>(0);
-
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const W = canvas.width;
-    const H = canvas.height;
-
-    ctx.clearRect(0, 0, W, H);
-    const t = timeRef.current;
-
-    const cx = W * 0.5;
-    const cy = H * 0.48;
-
-    for (let i = 0; i < 24; i++) {
-      const progress = i / 24;
-      const phase = t * 0.4 + i * 0.28;
-      const baseRx = 70 + i * 22 + Math.sin(phase * 0.7) * 18;
-      const baseRy = 45 + i * 16 + Math.cos(phase * 0.5) * 14;
-      const angle = t * 0.015 + i * 0.04;
-      const hue = 340 - progress * 30;
-      const alpha = 0.55 - progress * 0.014;
-
-      ctx.beginPath();
-      for (let s = 0; s <= 120; s++) {
-        const theta = (s / 120) * Math.PI * 2;
-        const distort =
-          Math.sin(theta * 2 + phase) * 0.12 +
-          Math.sin(theta * 3 - phase * 0.6) * 0.08 +
-          Math.cos(theta * 4 + phase * 0.8) * 0.06;
-
-        const rx = baseRx * (1 + distort);
-        const ry = baseRy * (1 + distort * 0.8);
-
-        const rotX =
-          rx * Math.cos(theta) * Math.cos(angle) -
-          ry * Math.sin(theta) * Math.sin(angle);
-        const rotY =
-          rx * Math.cos(theta) * Math.sin(angle) +
-          ry * Math.sin(theta) * Math.cos(angle);
-
-        if (s === 0) {
-          ctx.moveTo(cx + rotX, cy + rotY);
-        } else {
-          ctx.lineTo(cx + rotX, cy + rotY);
-        }
-      }
-      ctx.closePath();
-      ctx.strokeStyle = `hsla(${hue}, 78%, 52%, ${alpha})`;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-    }
-
-    timeRef.current += 0.012;
-    frameRef.current = requestAnimationFrame(draw);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+
+    const vsSource = `
+      attribute vec2 position;
+      void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+
+    const fsSource = `
+      precision highp float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      mat2 rot(float a) {
+          float s = sin(a), c = cos(a);
+          return mat2(c, -s, s, c);
+      }
+
+      float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+
+      float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          vec2 shift = vec2(100.0);
+          for (int i = 0; i < 6; ++i) {
+              v += a * noise(p);
+              p = rot(0.5) * p * 2.0 + shift;
+              a *= 0.5;
+          }
+          return v;
+      }
+
+      void main() {
+          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+          
+          vec2 q = vec2(0.0);
+          q.x = fbm(uv + 0.1 * u_time);
+          q.y = fbm(uv + vec2(1.0));
+
+          vec2 r = vec2(0.0);
+          r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.05 * u_time);
+          r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.05 * u_time);
+
+          float f = fbm(uv + r);
+
+          // EMERALD / CYAN PALETTE FOR SECURITY/VERIFICATION
+          vec3 colorBase = vec3(0.02, 0.05, 0.04);    // Deep dark teal/green
+          vec3 colorGreen = vec3(0.06, 0.72, 0.50);   // Emerald (#10b981)
+          vec3 colorCyan = vec3(0.02, 0.71, 0.83);    // Cyan (#06b6d4)
+
+          vec3 col = mix(colorBase, colorGreen, clamp((f * f) * 1.5, 0.0, 1.0));
+          col = mix(col, colorCyan, clamp(length(q) * 0.3, 0.0, 1.0));
+          col = mix(col, colorBase, clamp(length(r.x) * 1.5, 0.0, 1.0));
+
+          float highlight = smoothstep(0.3, 0.7, f);
+          col += highlight * vec3(0.1, 0.25, 0.2); // Soft green specular highlight
+
+          col *= smoothstep(0.0, 0.8, f + 0.3);
+
+          gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+      const shader = gl.createShader(type);
+      if (!shader) return null;
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null;
+      return shader;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    
+    if (!program || !vertexShader || !fragmentShader) return;
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const positionLocation = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    const timeLocation = gl.getUniformLocation(program, "u_time");
+
     const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
     };
-    resize();
+    
     window.addEventListener("resize", resize);
-    frameRef.current = requestAnimationFrame(draw);
+    resize();
+
+    let animationFrameId: number;
+    let startTime = performance.now();
+
+    const render = (time: number) => {
+      const elapsedTime = (time - startTime) / 1000;
+      gl.uniform1f(timeLocation, elapsedTime);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
     return () => {
       window.removeEventListener("resize", resize);
-      cancelAnimationFrame(frameRef.current);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [draw]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.95 }}
+      className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
     />
   );
 }
@@ -218,62 +282,70 @@ function VerifyOtpContent() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 60 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
       className="relative z-10 w-full max-w-md"
     >
       <div
-        className="rounded-[30px] p-10 overflow-hidden"
+        className="relative rounded-[28px] p-10 shadow-2xl overflow-hidden"
         style={{
-          background: "rgba(10,10,20,0.38)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.45)",
+          background: "rgba(5, 15, 10, 0.65)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(16, 185, 129, 0.2)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 40px rgba(16, 185, 129, 0.15)",
         }}
       >
+        {/* Internal Gloss Highlight */}
+        <div
+          className="absolute inset-0 rounded-[28px] pointer-events-none"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.05), transparent 40%)",
+          }}
+        />
+
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
+        <div className="text-center mb-8 relative z-10">
+          <Link href="/" className="inline-flex items-center gap-2 mb-5">
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-black font-black text-xs"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-black text-white"
               style={{
-                background: "linear-gradient(135deg,#ff4d8d,#7c4dff)",
+                background: "linear-gradient(135deg, #10b981, #06b6d4)",
               }}
             >
               SO
             </div>
-            <span className="font-display text-3xl font-black">
-              Study<span className="text-pink-400">Orbit</span>
+            <span className="font-display text-3xl font-black text-white tracking-wide">
+              Study<span style={{ color: "#10b981" }}>Orbit</span>
             </span>
           </Link>
         </div>
 
         {/* Icon */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-6 relative z-10">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{
-              background: "rgba(255,0,120,0.12)",
-              border: "1px solid rgba(255,0,120,0.2)",
+              background: "rgba(16, 185, 129, 0.12)",
+              border: "1px solid rgba(16, 185, 129, 0.25)",
             }}
           >
-            <ShieldCheck size={30} className="text-pink-400" />
+            <ShieldCheck size={32} style={{ color: "#10b981" }} />
           </div>
         </div>
 
         {/* Heading */}
-        <h2 className="font-display text-2xl font-bold text-center mb-3">
+        <h2 className="font-display text-2xl font-bold text-center text-white mb-3 relative z-10">
           Verify OTP
         </h2>
-        <p className="text-sm text-center mb-8" style={{ color: "#9ca3af" }}>
+        <p className="text-[13px] text-center mb-8 relative z-10" style={{ color: "#9ca3af" }}>
           Enter the 6-digit OTP sent to{" "}
-          {identifier ? <strong>{identifier}</strong> : "your account"}.
+          {identifier ? <strong className="text-white">{identifier}</strong> : "your account"}.
         </p>
 
         {/* OTP Inputs */}
-        <div className="flex justify-center gap-3 mb-6">
+        <div className="flex justify-center gap-3 mb-6 relative z-10">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -289,7 +361,16 @@ function VerifyOtpContent() {
               className="w-12 h-14 rounded-xl text-center text-xl font-bold text-white outline-none transition-all disabled:opacity-50"
               style={{
                 background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid rgba(16, 185, 129, 0.2)",
+                caretColor: "#10b981",
+              }}
+              onFocus={(e) => {
+                e.target.style.border = "1px solid #10b981";
+                e.target.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.2)";
+              }}
+              onBlur={(e) => {
+                e.target.style.border = "1px solid rgba(16, 185, 129, 0.2)";
+                e.target.style.boxShadow = "none";
               }}
             />
           ))}
@@ -297,52 +378,54 @@ function VerifyOtpContent() {
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-red-400 text-center mb-5">{error}</p>
+          <p className="text-[13px] font-medium text-red-400 text-center mb-5 relative z-10">{error}</p>
         )}
 
         {/* Verify Button */}
-        <motion.button
-          type="button"
-          onClick={verifyOtp}
-          disabled={isLoading}
-          whileHover={!isLoading ? { scale: 1.02 } : {}}
-          whileTap={!isLoading ? { scale: 0.98 } : {}}
-          className="w-full py-4 rounded-2xl font-bold text-sm text-black flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          style={{
-            background: "linear-gradient(135deg,#ff4d8d,#7c4dff)",
-            boxShadow: "0 8px 30px rgba(255,0,120,0.25)",
-          }}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin text-black" />
-              Verifying...
-            </>
-          ) : (
-            <>
-              Verify OTP
-              <ArrowRight size={16} />
-            </>
-          )}
-        </motion.button>
+        <div className="relative z-10">
+          <motion.button
+            type="button"
+            onClick={verifyOtp}
+            disabled={isLoading}
+            whileHover={!isLoading ? { scale: 1.02 } : {}}
+            whileTap={!isLoading ? { scale: 0.98 } : {}}
+            className="w-full py-3.5 rounded-xl font-bold text-[15px] text-white flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            style={{
+              background: "linear-gradient(135deg, #10b981, #06b6d4)",
+              boxShadow: "0 8px 24px rgba(16, 185, 129, 0.25)",
+            }}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-white" />
+                Verifying...
+              </>
+            ) : (
+              <>
+                Verify OTP
+                <ArrowRight size={16} />
+              </>
+            )}
+          </motion.button>
+        </div>
 
         {/* Resend */}
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center relative z-10">
           <button
             onClick={handleResendOtp}
             disabled={isResending || isLoading}
-            className="text-sm transition-colors hover:text-pink-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ color: "#8b5cf6" }}
+            className="text-[13px] font-medium transition-colors hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: "#10b981" }}
           >
             {isResending ? "Resending..." : "Resend OTP"}
           </button>
         </div>
 
         {/* Back */}
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center relative z-10">
           <Link
             href="/auth/forgot-password"
-            className="inline-flex items-center gap-2 text-sm hover:text-pink-400 transition-colors"
+            className="inline-flex items-center gap-2 text-[13px] font-medium transition-colors hover:text-white"
             style={{ color: "#6b7280" }}
           >
             <ArrowLeft size={14} />
@@ -355,28 +438,17 @@ function VerifyOtpContent() {
 }
 
 // ───────────────── MAIN WRAPPER ─────────────────
-// Required to wrap useSearchParams in a Suspense boundary for Next.js build
 export default function VerifyOtpPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 text-white">
-      {/* Backgrounds */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 130% 90% at 65% 55%, #1b0020 0%, #090010 45%, #000000 100%)",
-        }}
-      />
-      <TopoCanvas />
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(255,0,120,0.08), transparent 35%)",
-        }}
-      />
+    <main className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 font-sans selection:bg-[#10b981]/30">
+      
+      {/* ── 3D Fluid WebGL Background ── */}
+      <FluidBackground />
 
-      <Suspense fallback={<div>Loading...</div>}>
+      {/* Dim Overlay */}
+      <div className="absolute inset-0 bg-[#020a07]/60 z-0 pointer-events-none" />
+
+      <Suspense fallback={<div className="text-white relative z-10">Loading...</div>}>
         <VerifyOtpContent />
       </Suspense>
     </main>

@@ -3,91 +3,166 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Link from "next/link";
-import { useRef, useCallback, useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 
-// ── Topo Canvas (As it was) ────────────────────────────────────────────────────────
-function TopoCanvas() {
+// ─── 3D Fluid WebGL Background (Matching Landing Page) ───────────────────────
+function FluidBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<number>(0);
-  const timeRef = useRef<number>(0);
-
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const W = canvas.width,
-      H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-    const t = timeRef.current;
-    const cx = W * 0.52,
-      cy = H * 0.48;
-    for (let i = 0; i < 22; i++) {
-      const progress = i / 22;
-      const phase = t * 0.4 + i * 0.28;
-      const baseRx = 40 + i * 22 + Math.sin(phase * 0.7) * 18;
-      const baseRy = 28 + i * 15 + Math.cos(phase * 0.5) * 14;
-      const angle = t * 0.015 + i * 0.04;
-      const hue = 40 - progress * 6,
-        sat = 78 - progress * 12;
-      const light = 35 + progress * 22,
-        alpha = 0.65 - progress * 0.015;
-      ctx.beginPath();
-      for (let s = 0; s <= 120; s++) {
-        const theta = (s / 120) * Math.PI * 2;
-        const distort =
-          Math.sin(theta * 2 + phase) * 0.12 +
-          Math.sin(theta * 3 - phase * 0.6) * 0.08 +
-          Math.sin(theta * 5 + phase * 0.4) * 0.05 +
-          Math.cos(theta * 4 + phase * 0.8) * 0.06;
-        const rx = baseRx * (1 + distort),
-          ry = baseRy * (1 + distort * 0.8);
-        const rotX =
-          rx * Math.cos(theta) * Math.cos(angle) -
-          ry * Math.sin(theta) * Math.sin(angle);
-        const rotY =
-          rx * Math.cos(theta) * Math.sin(angle) +
-          ry * Math.sin(theta) * Math.cos(angle);
-        s === 0
-          ? ctx.moveTo(cx + rotX, cy + rotY)
-          : ctx.lineTo(cx + rotX, cy + rotY);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = `hsla(${hue},${sat}%,${light}%,${alpha})`;
-      ctx.lineWidth = 1.3;
-      ctx.stroke();
-    }
-    timeRef.current += 0.012;
-    frameRef.current = requestAnimationFrame(draw);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+
+    // Vertex Shader: Maps the canvas to a 2D plane
+    const vsSource = `
+      attribute vec2 position;
+      void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+
+    // Fragment Shader: Generates the 3D fluid silk effect
+    const fsSource = `
+      precision highp float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+
+      mat2 rot(float a) {
+          float s = sin(a), c = cos(a);
+          return mat2(c, -s, s, c);
+      }
+
+      float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+
+      float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          vec2 shift = vec2(100.0);
+          for (int i = 0; i < 6; ++i) {
+              v += a * noise(p);
+              p = rot(0.5) * p * 2.0 + shift;
+              a *= 0.5;
+          }
+          return v;
+      }
+
+      void main() {
+          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+          
+          vec2 q = vec2(0.0);
+          q.x = fbm(uv + 0.1 * u_time);
+          q.y = fbm(uv + vec2(1.0));
+
+          vec2 r = vec2(0.0);
+          r.x = fbm(uv + 1.0 * q + vec2(1.7, 9.2) + 0.05 * u_time);
+          r.y = fbm(uv + 1.0 * q + vec2(8.3, 2.8) + 0.05 * u_time);
+
+          float f = fbm(uv + r);
+
+          // Brand Colors
+          vec3 colorBlack = vec3(0.02, 0.03, 0.05);
+          vec3 colorPurple = vec3(0.42, 0.39, 1.0); // #6c63ff
+          vec3 colorTeal = vec3(0.24, 0.81, 0.68);  // #3ecfad
+
+          vec3 col = mix(colorBlack, colorPurple, clamp((f * f) * 1.5, 0.0, 1.0));
+          col = mix(col, colorTeal, clamp(length(q) * 0.3, 0.0, 1.0));
+          col = mix(col, colorBlack, clamp(length(r.x) * 1.5, 0.0, 1.0));
+
+          float highlight = smoothstep(0.3, 0.7, f);
+          col += highlight * vec3(0.2, 0.2, 0.25); 
+
+          col *= smoothstep(0.0, 0.8, f + 0.3);
+
+          gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+      const shader = gl.createShader(type);
+      if (!shader) return null;
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null;
+      return shader;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    
+    if (!program || !vertexShader || !fragmentShader) return;
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const positionLocation = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    const timeLocation = gl.getUniformLocation(program, "u_time");
+
     const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
     };
-    resize();
+    
     window.addEventListener("resize", resize);
-    frameRef.current = requestAnimationFrame(draw);
+    resize();
+
+    let animationFrameId: number;
+    let startTime = performance.now();
+
+    const render = (time: number) => {
+      const elapsedTime = (time - startTime) / 1000;
+      gl.uniform1f(timeLocation, elapsedTime);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
     return () => {
       window.removeEventListener("resize", resize);
-      cancelAnimationFrame(frameRef.current);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [draw]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.95 }}
+      className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
     />
   );
 }
 
+// ─── Login Form Component ────────────────────────────────────────────────────
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState("");
@@ -99,10 +174,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // 🔥 FETCH CALLBACK URL FROM SEARCH PARAMS 🔥
   const callbackUrl = searchParams.get("callbackUrl");
 
-  // ── Standard email/password login ────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
@@ -128,7 +201,6 @@ function LoginForm() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // 🔥 REDIRECT LOGIC 🔥
         if (callbackUrl) {
           router.push(callbackUrl);
         } else {
@@ -150,7 +222,6 @@ function LoginForm() {
     }
   };
 
-  // ── Google OAuth login ────────────────────────────────────────────────
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setIsLoading(true);
     setError("");
@@ -170,7 +241,6 @@ function LoginForm() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // 🔥 REDIRECT LOGIC 🔥
         if (callbackUrl) {
           router.push(callbackUrl);
         } else {
@@ -186,115 +256,62 @@ function LoginForm() {
     }
   };
 
-  // 🔥 PWA GOOGLE REDIRECT HANDLER (THE PERMANENT LOOP FIX) 🔥
   const googleCredential = searchParams.get("credential");
   
   useEffect(() => {
     if (googleCredential) {
-      // 1️⃣ Token ka ek chhota unique ID banao
       const tokenKey = `used_token_${googleCredential.substring(0, 20)}`;
-
-      // 2️⃣ Check karo ki kya browser ke session mein ye token use ho chuka hai
       if (!sessionStorage.getItem(tokenKey)) {
-        
-        // Mark it as used permanently for this session
         sessionStorage.setItem(tokenKey, "true");
-
-        // 3️⃣ Next.js ke router ko officially bolo ki URL se query params hata de
         router.replace(pathname);
-
-        // 4️⃣ Finally login trigger karo
         handleGoogleSuccess({ credential: googleCredential });
       }
     }
   }, [googleCredential, pathname, router]);
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden overflow-y-auto text-white flex items-center justify-center px-6 pb-12">
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 130% 90% at 65% 55%, #0f0c00 0%, #080600 45%, #000000 100%)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-0 w-[520px] h-[420px] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at 0% 100%, rgba(180,130,0,0.12) 0%, transparent 65%)",
-        }}
-      />
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: 420,
-          height: 360,
-          top: "18%",
-          left: "38%",
-          background:
-            "radial-gradient(ellipse, rgba(200,150,0,0.09) 0%, transparent 70%)",
-        }}
-      />
-      <TopoCanvas />
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 65% 70% at 22% 50%, transparent 25%, rgba(0,0,0,0.55) 100%)",
-        }}
-      />
+    <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center px-6 pb-12 font-sans selection:bg-[#6c63ff]/30">
+      
+      {/* ── 3D Fluid Animation Background ── */}
+      <FluidBackground />
+
+      {/* ── Optional Overlay to ensure form remains readable ── */}
+      <div className="absolute inset-0 bg-black/40 z-0 pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 60 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-md"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-md mt-12"
       >
-        <div
-          className="relative rounded-[28px] p-10 shadow-2xl overflow-hidden"
-          style={{
-            background: "rgba(10,10,10,0.32)",
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            border: "1px solid rgba(245,200,66,0.18)",
-            boxShadow:
-              "0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(245,200,66,0.08)",
-          }}
-        >
+        {/* ── Card Container ── */}
+        <div className="relative rounded-[24px] p-10 overflow-hidden bg-[#111118]/80 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+          
           <div
-            className="absolute inset-0 rounded-[28px] pointer-events-none"
+            className="absolute inset-0 rounded-[24px] pointer-events-none"
             style={{
-              background:
-                "linear-gradient(135deg,rgba(255,255,255,0.08),transparent 35%)",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.03), transparent 40%)",
             }}
           />
 
           {/* Logo */}
-          <div className="text-center mb-9">
-            <Link href="/" className="inline-flex items-center gap-2 mb-5">
-              <div
-                className="font-display w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-black"
-                style={{
-                  background: "linear-gradient(135deg,#f5c842,#c9a227)",
-                }}
-              >
+          <div className="text-center mb-9 relative z-10">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
+              <div className="font-display w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white bg-[#6c63ff]">
                 SO
               </div>
-              {/* 🔥 ADDED: font-display class 🔥 */}
               <span className="font-display text-2xl font-black tracking-wide text-white">
-                Study<span style={{ color: "#c9a227" }}>Orbit</span>
+                Study<span className="text-[#6c63ff]">Orbit</span>
               </span>
             </Link>
-            {/* 🔥 ADDED: font-display class 🔥 */}
-            <h2 className="font-display text-xl font-bold text-white mb-1">Welcome back</h2>
-            <p className="text-sm" style={{ color: "#7a6a4a" }}>
+            <h2 className="font-display text-2xl font-bold text-white mb-1.5">Welcome back</h2>
+            <p className="text-sm text-[#7a7a8c] font-medium">
               Sign in to your student ecosystem
             </p>
           </div>
 
           {/* Google */}
-          <div className="flex justify-center mb-6 w-full">
+          <div className="flex justify-center mb-6 w-full relative z-10">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => setError("Google Login Failed. Please try again.")}
@@ -311,106 +328,74 @@ function LoginForm() {
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 mb-6">
-            <div
-              className="flex-1 h-px"
-              style={{ background: "rgba(200,160,40,0.12)" }}
-            />
-            <span className="text-xs" style={{ color: "#5a4e32" }}>
+          <div className="flex items-center gap-4 mb-6 relative z-10">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-[11px] font-semibold tracking-widest text-[#7a7a8c]">
               OR SIGN IN WITH EMAIL
             </span>
-            <div
-              className="flex-1 h-px"
-              style={{ background: "rgba(200,160,40,0.12)" }}
-            />
+            <div className="flex-1 h-px bg-white/10" />
           </div>
 
           {/* Error banner */}
           {error && (
-            <div
-              className="mb-4 px-4 py-3 rounded-2xl text-xs font-semibold text-center"
-              style={{
-                background: "rgba(239,68,68,0.12)",
-                border: "1px solid rgba(239,68,68,0.25)",
-                color: "#fca5a5",
-              }}
-            >
+            <div className="mb-5 px-4 py-3 rounded-xl text-xs font-semibold text-center bg-red-500/10 border border-red-500/20 text-red-400 relative z-10">
               {error}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5 relative z-10">
             <div>
-              <label
-                className="text-xs font-semibold mb-2 block uppercase tracking-wider"
-                style={{ color: "#8a7a5a" }}
-              >
+              <label className="text-[11px] font-bold mb-2 block uppercase tracking-wider text-[#7a7a8c]">
                 Email / Username
               </label>
               <div className="relative">
                 <Mail
-                  size={15}
-                  className="absolute left-4 top-1/2 -translate-y-1/2"
-                  style={{ color: "#6a5a3a" }}
+                  size={16}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a7a8c]"
                 />
                 <input
                   type="text"
                   placeholder="Enter your email or username"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full pl-11 pr-5 py-3.5 rounded-2xl text-sm text-white placeholder-[#4a3e28] outline-none"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(200,160,40,0.15)",
-                    WebkitUserSelect: "text", 
-                    userSelect: "text", 
-                  }}
+                  className="w-full pl-11 pr-5 py-3.5 rounded-xl text-sm text-white placeholder-[#4a4a5a] bg-[#0d0d12]/80 border border-white/10 outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-all"
+                  style={{ userSelect: "text", WebkitUserSelect: "text" }}
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label
-                  className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#8a7a5a" }}
-                >
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#7a7a8c]">
                   Password
                 </label>
                 <Link
                   href="/auth/forgot-password"
-                  className="text-xs"
-                  style={{ color: "#c9a227" }}
+                  className="text-xs font-medium text-[#3ecfad] hover:text-[#52e8c5] transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
               <div className="relative">
                 <Lock
-                  size={15}
-                  className="absolute left-4 top-1/2 -translate-y-1/2"
-                  style={{ color: "#6a5a3a" }}
+                  size={16}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7a7a8c]"
                 />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-12 py-3.5 rounded-2xl text-sm text-white placeholder-[#4a3e28] outline-none"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(200,160,40,0.15)",
-                    WebkitUserSelect: "text", 
-                    userSelect: "text", 
-                  }}
+                  className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm text-white placeholder-[#4a4a5a] bg-[#0d0d12]/80 border border-white/10 outline-none focus:border-[#6c63ff] focus:ring-1 focus:ring-[#6c63ff] transition-all"
+                  style={{ userSelect: "text", WebkitUserSelect: "text" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a7a8c] hover:text-white transition-colors"
                 >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -418,50 +403,36 @@ function LoginForm() {
             <motion.button
               type="submit"
               disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-4 rounded-2xl font-bold text-sm text-black flex items-center justify-center gap-2 shadow-lg mt-2"
-              style={{
-                background: "linear-gradient(135deg,#f5c842,#c9a227)",
-                opacity: isLoading ? 0.7 : 1,
-              }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className={`w-full py-3.5 rounded-xl font-semibold text-[15px] text-white flex items-center justify-center gap-2 shadow-lg shadow-[#6c63ff]/20 transition-all mt-2 ${
+                isLoading ? "bg-[#5b54e5] opacity-70" : "bg-[#6c63ff] hover:bg-[#5b54e5]"
+              }`}
             >
               {isLoading ? (
                 "Signing in..."
               ) : (
                 <>
-                  {" "}
-                  Sign In <ArrowRight size={16} />{" "}
+                  Sign In <ArrowRight size={16} />
                 </>
               )}
             </motion.button>
           </form>
 
-          {/* Register */}
-          <div className="flex items-center gap-4 my-6">
-            <div
-              className="flex-1 h-px"
-              style={{ background: "rgba(200,160,40,0.12)" }}
-            />
-            <span className="text-xs" style={{ color: "#5a4e32" }}>
+          {/* Register Link */}
+          <div className="flex items-center gap-4 my-6 relative z-10">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-[11px] font-semibold tracking-widest text-[#7a7a8c]">
               NEW TO STUDYORBIT?
             </span>
-            <div
-              className="flex-1 h-px"
-              style={{ background: "rgba(200,160,40,0.12)" }}
-            />
+            <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <Link href="/auth/register">
+          <Link href="/auth/register" className="block relative z-10">
             <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-3.5 rounded-2xl text-sm font-semibold text-center cursor-pointer"
-              style={{
-                border: "1px solid rgba(200,160,40,0.25)",
-                color: "#c9a227",
-                background: "rgba(200,160,40,0.04)",
-              }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className="w-full py-3.5 rounded-xl text-[14px] font-medium text-center transition-colors border border-white/10 text-[#3ecfad] bg-white/5 hover:bg-white/10 hover:border-white/20"
             >
               Create a free account →
             </motion.div>

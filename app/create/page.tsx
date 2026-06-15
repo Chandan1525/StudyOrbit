@@ -102,7 +102,7 @@ export default function CreatePostPage() {
           <button onClick={() => router.back()} className="p-2 bg-gray-100 dark:bg-slate-800 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition text-slate-800 dark:text-slate-200">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white transition-colors">Create Post</h1>
+          <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white tracking-tight">Create Post</h1>
         </div>
         <motion.button 
           whileTap={{ scale: 0.95 }}

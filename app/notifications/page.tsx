@@ -158,7 +158,7 @@ export default function NotificationsPage() {
           >
             <ArrowLeft size={18} className="text-gray-700 dark:text-gray-200" />
           </button>
-          <h1 className="text-xl font-black text-gray-900 dark:text-gray-100">
+          <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white tracking-tight">
             Notifications
           </h1>
         </div>
