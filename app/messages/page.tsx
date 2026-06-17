@@ -65,50 +65,17 @@ function ChatInterface() {
 
   // Chat Settings Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  // 🔥 FIX 1: Lazy Initialize from Local Storage 🔥
-  const [settingMute, setSettingMute] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("chat_setting_mute") === "true";
-    }
-    return false;
-  });
-
-  const [settingOnline, setSettingOnline] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("chat_setting_online");
-      return saved !== null ? saved === "true" : true;
-    }
-    return true;
-  });
-
+  const [settingMute, setSettingMute] = useState(false);
+  const [settingOnline, setSettingOnline] = useState(true);
   const [chatWallpaper, setChatWallpaper] = useState<string>("");
 
+  // 🔥 NEW: Load the saved wallpaper when the page refreshes
   useEffect(() => {
     const savedWallpaper = localStorage.getItem("chatWallpaper");
     if (savedWallpaper) {
       setChatWallpaper(savedWallpaper);
     }
   }, []);
-
-  // 🔥 FIX 2: Sync Online Status with Backend 🔥
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const syncOnlinePrivacy = async () => {
-      try {
-        await axios.put(
-          `${API}/api/users/privacy-settings`,
-          { showOnlineStatus: settingOnline },
-          { headers: getAuthHeaders() },
-        );
-      } catch (err) {
-        console.error("Failed to sync online status to database", err);
-      }
-    };
-
-    syncOnlinePrivacy();
-  }, [settingOnline, currentUser]);
 
   const WALLPAPERS = [
     { id: "default", name: "Default", url: "" },
@@ -146,20 +113,16 @@ function ChatInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
-  // ✅ NAYA PERFECT CODE:
   useEffect(() => {
     if (currentUser) {
-      // 1. 🔥 Live messages ke liye socket HAMESHA connected rehna chahiye!
-      socket.connect();
-
-      // 2. Sirf tabhi 'add_user' emit karo jab tumhe logo ko Online dikhna ho
       if (settingOnline) {
+        socket.connect();
         socket.emit("add_user", currentUser._id || currentUser.id);
+      } else {
+        socket.disconnect();
       }
     }
-
     socket.on("get_online_users", (usersArray) => setOnlineUsers(usersArray));
-
     return () => {
       socket.off("get_online_users");
     };
@@ -231,10 +194,12 @@ function ChatInterface() {
     const handleReceiveMessage = (data: any) => {
       const myId = currentUser?._id || currentUser?.id;
 
+      // 🔥 FIX: Safe ID Extraction (Object aane par crash nahi hoga)
       const senderId = data.sender?._id || data.sender?.id || data.sender;
       const receiverId =
         data.receiver?._id || data.receiver?.id || data.receiver;
 
+      // STRICT CHECK
       const isMessageForThisChat =
         (senderId === activeChat?._id && receiverId === myId) ||
         (senderId === myId && receiverId === activeChat?._id);
@@ -245,16 +210,15 @@ function ChatInterface() {
           return [...prev, data];
         });
       } else {
+        // Agar message kisi aur ka hai, tabhi Unread (Green Dot) mark karo
         if (senderId !== myId) {
           setUnreadChats((prev) => ({ ...prev, [senderId]: true }));
 
+          // 🔥 SYNC WITH BOTTOM NAV
           localStorage.setItem("has_new_msg", "true");
           window.dispatchEvent(new Event("new_message_alert"));
 
-          // 🔥 FIX 3: Sound conditional update 🔥
-          const isMutedLocally =
-            localStorage.getItem("chat_setting_mute") === "true";
-          if (!settingMute && !isMutedLocally) {
+          if (!settingMute) {
             try {
               const audio = new Audio(
                 "https://cdn.pixabay.com/audio/2022/03/15/audio_7a89843c1a.mp3",
@@ -269,6 +233,7 @@ function ChatInterface() {
         }
       }
 
+      // Move user to top of sidebar
       setChatUsers((prevUsers) => {
         const targetUserId = senderId === myId ? receiverId : senderId;
         const existingIndex = prevUsers.findIndex(
@@ -491,16 +456,17 @@ function ChatInterface() {
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 pb-36 custom-scrollbar">
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => {
+                // 🔥 SAFE ID EXTRACTOR: Crash/Mismatch se bachne ke liye
                 const safeUserId = user._id || user.id;
 
                 const isActive =
-                  String(activeChat?._id || activeChat?.id) ===
-                  String(safeUserId);
+                  activeChat?._id === safeUserId ||
+                  activeChat?.id === safeUserId;
                 const isUserOnline =
-                  onlineUsers.some(
-                    (onlineId) => String(onlineId) === String(safeUserId),
-                  ) && user.showOnlineStatus !== false;
+                  onlineUsers.includes(safeUserId) &&
+                  user.showOnlineStatus !== false;
 
+                // Check if this specific user has unread messages
                 const hasUnread = unreadChats[safeUserId];
 
                 return (
@@ -509,13 +475,16 @@ function ChatInterface() {
                     onClick={() => {
                       setActiveChat(user);
 
+                      // 🔥 DOT REMOVE & SYNC LOGIC 🔥
                       setUnreadChats((prev) => {
                         const updatedChats = { ...prev, [safeUserId]: false };
 
+                        // Check karo ki kya koi aur chat unread bachi hai list mein?
                         const anyUnreadLeft =
                           Object.values(updatedChats).some(Boolean);
 
                         if (!anyUnreadLeft) {
+                          // Agar aur koi chat unread nahi hai, toh Footer ka Dot bhi hamesha ke liye hata do
                           localStorage.removeItem("has_new_msg");
                           window.dispatchEvent(new Event("new_message_alert"));
                         }
@@ -560,6 +529,7 @@ function ChatInterface() {
                             : "text-gray-400 dark:text-slate-500"
                         }`}
                       >
+                        {/* 🔥 TEXT TOGGLE MAGIC 🔥 */}
                         {hasUnread ? (
                           <span className="text-green-500 font-bold">
                             Tap to view message
@@ -570,6 +540,7 @@ function ChatInterface() {
                       </p>
                     </div>
 
+                    {/* 🔥 BLINKING GREEN DOT 🔥 */}
                     {hasUnread && (
                       <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                     )}
@@ -619,6 +590,7 @@ function ChatInterface() {
                       }
                       className="w-10 h-10 md:w-12 md:h-12 rounded-[14px] object-cover shadow-sm border border-gray-100 dark:border-slate-700"
                     />
+                    {/* 🔥 HEADER AVATAR PRIVACY CHECK 🔥 */}
                     {onlineUsers.includes(activeChat._id) &&
                       activeChat.showOnlineStatus !== false && (
                         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-900" />
@@ -632,6 +604,7 @@ function ChatInterface() {
                       {activeChat.name || activeChat.username}
                     </h2>
 
+                    {/* 🔥 HEADER TEXT PRIVACY CHECK 🔥 */}
                     <p
                       className={`${onlineUsers.includes(activeChat._id) && activeChat.showOnlineStatus !== false ? "text-green-500" : "text-gray-400 dark:text-slate-500"} text-xs font-bold mt-0.5`}
                     >
@@ -696,7 +669,7 @@ function ChatInterface() {
 
                         <div
                           onClick={(e) => {
-                            e.stopPropagation();
+                            e.stopPropagation(); // 👈 THIS WAS MISSING: Prevents the background tap from firing!
                             if (isMe && !editingMessageId) {
                               setActiveMenuId(
                                 activeMenuId === msg._id ? null : msg._id,
@@ -790,7 +763,7 @@ function ChatInterface() {
 
               {/* CHAT INPUT LAYER */}
               <div
-                onClick={() => setActiveMenuId(null)}
+                onClick={() => setActiveMenuId(null)} // Clear active mobile menus
                 className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors"
               >
                 <div className="max-w-4xl mx-auto relative">
@@ -926,11 +899,7 @@ function ChatInterface() {
                   </p>
                 </div>
                 <button
-                  onClick={() => {
-                    const newValue = !settingMute;
-                    setSettingMute(newValue);
-                    localStorage.setItem("chat_setting_mute", String(newValue));
-                  }}
+                  onClick={() => setSettingMute(!settingMute)}
                   className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingMute ? "bg-[#a855f7]" : "bg-gray-700"}`}
                 >
                   <div
@@ -948,14 +917,7 @@ function ChatInterface() {
                   </p>
                 </div>
                 <button
-                  onClick={() => {
-                    const newValue = !settingOnline;
-                    setSettingOnline(newValue);
-                    localStorage.setItem(
-                      "chat_setting_online",
-                      String(newValue),
-                    );
-                  }}
+                  onClick={() => setSettingOnline(!settingOnline)}
                   className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? "bg-[#a855f7]" : "bg-gray-700"}`}
                 >
                   <div
@@ -979,8 +941,8 @@ function ChatInterface() {
                       <button
                         key={wp.id}
                         onClick={() => {
-                          setChatWallpaper(wp.url);
-                          localStorage.setItem("chatWallpaper", wp.url);
+                          setChatWallpaper(wp.url); // Updates the screen immediately
+                          localStorage.setItem("chatWallpaper", wp.url); // Saves it permanently
                         }}
                         className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${isSelected ? "border-[3px] border-[#a855f7] scale-95" : "border border-gray-800 hover:border-gray-700"}`}
                         style={{
