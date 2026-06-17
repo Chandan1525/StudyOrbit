@@ -88,12 +88,12 @@ export default function SearchPage() {
     fetchSearchData();
   }, []);
 
-  // 🔥 5. Dynamic NAV array
+  // 🔥 5. Dynamic NAV array with showDot
   const NAV = [
     { id: "home", icon: Home, label: "Home" },
     { id: "search", icon: Search, label: "Search" },
     { id: "community", icon: Users, label: "Community" },
-    { id: "chats", icon: MessageCircle, label: "Chats", badge: hasNewMessage ? "!" : null }, 
+    { id: "chats", icon: MessageCircle, label: "Chats", showDot: hasNewMessage }, 
     { id: "profile", icon: User, label: "Profile" },
   ];
 
@@ -517,10 +517,9 @@ export default function SearchPage() {
                       color: active ? "var(--accent-color)" : "currentColor",
                     }}
                   />
-                  {item.badge && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900">
-                      {item.badge}
-                    </span>
+                  {/* 🔥 NEW GLOWING GREEN DOT INSTEAD OF RED BADGE 🔥 */}
+                  {(item as any).showDot && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 animate-pulse border-2 border-white dark:border-slate-900 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                   )}
                 </div>
                 <span
