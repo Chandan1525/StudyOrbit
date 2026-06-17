@@ -30,12 +30,34 @@ export default function SearchPage() {
   const [activeFilter, setActiveFilter] = useState("People");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 1. Data states for MongoDB
+  // 🔥 1. New State for Dynamic Message Badge
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  // 2. Data states for MongoDB
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [dbPosts, setDbPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 2. Fetch Data from Backend
+  // 🔥 3. Listener for New Messages
+  useEffect(() => {
+    // Initial check on page load
+    if (typeof window !== "undefined" && localStorage.getItem("has_new_msg") === "true") {
+      setHasNewMessage(true);
+    }
+
+    // Real-time listener for background updates
+    const handleNewMessage = () => {
+      setHasNewMessage(true);
+    }
+
+    window.addEventListener("new_message_alert", handleNewMessage);
+    
+    return () => {
+      window.removeEventListener("new_message_alert", handleNewMessage);
+    };
+  }, []);
+
+  // 4. Fetch Data from Backend
   useEffect(() => {
     const fetchSearchData = async () => {
       try {
@@ -50,7 +72,7 @@ export default function SearchPage() {
         );
         setDbUsers(usersRes.data.users || usersRes.data || []);
 
-        // Fetch Posts (Dhyan rahe, yahan sirf ek baar 'const postsRes' likha hai)
+        // Fetch Posts
         const postsRes = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/posts`,
           { headers },
@@ -66,11 +88,12 @@ export default function SearchPage() {
     fetchSearchData();
   }, []);
 
+  // 🔥 5. Dynamic NAV array
   const NAV = [
     { id: "home", icon: Home, label: "Home" },
     { id: "search", icon: Search, label: "Search" },
     { id: "community", icon: Users, label: "Community" },
-    { id: "chats", icon: MessageCircle, label: "Chats", badge: 3 },
+    { id: "chats", icon: MessageCircle, label: "Chats", badge: hasNewMessage ? "!" : null }, 
     { id: "profile", icon: User, label: "Profile" },
   ];
 
@@ -110,8 +133,6 @@ export default function SearchPage() {
     },
   ];
 
-  // 🔥 3. Dynamic Filter Logic for MongoDB Data 🔥
-
   // -- People Search --
   const filteredUsers = dbUsers.filter(
     (u) =>
@@ -119,18 +140,16 @@ export default function SearchPage() {
       u.username?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // -- Posts Search (Hashtags, Orbit, Caption) --
+  // -- Posts Search --
   const filteredPosts = dbPosts.filter((p) => {
     const sq = searchQuery.toLowerCase().trim();
     if (!sq) return true;
 
-    // Agar user ne '#' lagaya hai, toh array match karne ke liye use hata dein
     const cleanTagQuery = sq.startsWith("#") ? sq.slice(1) : sq;
 
     const matchCaption = p.caption?.toLowerCase().includes(sq);
     const matchOrbit = p.orbit?.toLowerCase().includes(sq);
 
-    // Hashtags array mein search karna
     const matchHashtags =
       p.hashtags && Array.isArray(p.hashtags)
         ? p.hashtags.some((tag: string) =>
@@ -151,10 +170,9 @@ export default function SearchPage() {
       proj.stack.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // Helper to trigger a search from trending topics
   const handleTrendingClick = (tag: string) => {
-    setActiveFilter("Posts"); // Automatically switch to Posts tab
-    setSearchQuery(tag); // Search for the hashtag
+    setActiveFilter("Posts");
+    setSearchQuery(tag); 
   };
 
   return (
@@ -167,7 +185,6 @@ export default function SearchPage() {
           </div>
 
           <div>
-            {/* 🔥 FONT DISPLAY APPLIED 🔥 */}
             <h1 className="font-display text-2xl font-black text-gray-900 dark:text-white transition-colors">
               Explore
             </h1>
@@ -287,7 +304,7 @@ export default function SearchPage() {
               filteredPosts.map((post) => (
                 <div
                   key={post._id}
-                  onClick={() => router.push(`/post/${post._id}`)} // 🔥 Routes to single post
+                  onClick={() => router.push(`/post/${post._id}`)} 
                   className="p-5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-sm cursor-pointer hover:border-accent transition-all"
                 >
                   {/* Orbit Tag */}
@@ -442,7 +459,6 @@ export default function SearchPage() {
         <div className="px-5 mt-7">
           <div className="flex items-center gap-2 mb-5">
             <Flame size={22} className="text-orange-500" />
-            {/* 🔥 FONT DISPLAY APPLIED 🔥 */}
             <h2 className="font-display text-2xl font-black text-gray-900 dark:text-white transition-colors">
               Trending Topics
             </h2>
