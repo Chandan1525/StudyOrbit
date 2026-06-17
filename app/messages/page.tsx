@@ -532,7 +532,7 @@ function ChatInterface() {
                         {/* 🔥 TEXT TOGGLE MAGIC 🔥 */}
                         {hasUnread ? (
                           <span className="text-green-500 font-bold">
-                            New message received
+                            Tap to view message
                           </span>
                         ) : (
                           "Tap to view chat"
