@@ -65,7 +65,7 @@ function ChatInterface() {
 
   // Chat Settings Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   // 🔥 FIX 1: Lazy Initialize from Local Storage 🔥
   const [settingMute, setSettingMute] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -77,7 +77,7 @@ function ChatInterface() {
   const [settingOnline, setSettingOnline] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("chat_setting_online");
-      return saved !== null ? saved === "true" : true; 
+      return saved !== null ? saved === "true" : true;
     }
     return true;
   });
@@ -94,13 +94,13 @@ function ChatInterface() {
   // 🔥 FIX 2: Sync Online Status with Backend 🔥
   useEffect(() => {
     if (!currentUser) return;
-    
+
     const syncOnlinePrivacy = async () => {
       try {
         await axios.put(
-          `${API}/api/users/privacy-settings`, 
+          `${API}/api/users/privacy-settings`,
           { showOnlineStatus: settingOnline },
-          { headers: getAuthHeaders() }
+          { headers: getAuthHeaders() },
         );
       } catch (err) {
         console.error("Failed to sync online status to database", err);
@@ -146,16 +146,20 @@ function ChatInterface() {
     if (stored) setCurrentUser(JSON.parse(stored));
   }, []);
 
+  // ✅ NAYA PERFECT CODE:
   useEffect(() => {
     if (currentUser) {
+      // 1. 🔥 Live messages ke liye socket HAMESHA connected rehna chahiye!
+      socket.connect();
+
+      // 2. Sirf tabhi 'add_user' emit karo jab tumhe logo ko Online dikhna ho
       if (settingOnline) {
-        socket.connect();
         socket.emit("add_user", currentUser._id || currentUser.id);
-      } else {
-        socket.disconnect();
       }
     }
+
     socket.on("get_online_users", (usersArray) => setOnlineUsers(usersArray));
+
     return () => {
       socket.off("get_online_users");
     };
@@ -248,7 +252,8 @@ function ChatInterface() {
           window.dispatchEvent(new Event("new_message_alert"));
 
           // 🔥 FIX 3: Sound conditional update 🔥
-          const isMutedLocally = localStorage.getItem("chat_setting_mute") === "true";
+          const isMutedLocally =
+            localStorage.getItem("chat_setting_mute") === "true";
           if (!settingMute && !isMutedLocally) {
             try {
               const audio = new Audio(
@@ -489,10 +494,12 @@ function ChatInterface() {
                 const safeUserId = user._id || user.id;
 
                 const isActive =
-                  String(activeChat?._id || activeChat?.id) === String(safeUserId);
+                  String(activeChat?._id || activeChat?.id) ===
+                  String(safeUserId);
                 const isUserOnline =
-                  onlineUsers.some((onlineId) => String(onlineId) === String(safeUserId)) &&
-                  user.showOnlineStatus !== false;
+                  onlineUsers.some(
+                    (onlineId) => String(onlineId) === String(safeUserId),
+                  ) && user.showOnlineStatus !== false;
 
                 const hasUnread = unreadChats[safeUserId];
 
@@ -689,7 +696,7 @@ function ChatInterface() {
 
                         <div
                           onClick={(e) => {
-                            e.stopPropagation(); 
+                            e.stopPropagation();
                             if (isMe && !editingMessageId) {
                               setActiveMenuId(
                                 activeMenuId === msg._id ? null : msg._id,
@@ -783,7 +790,7 @@ function ChatInterface() {
 
               {/* CHAT INPUT LAYER */}
               <div
-                onClick={() => setActiveMenuId(null)} 
+                onClick={() => setActiveMenuId(null)}
                 className="absolute md:fixed left-0 md:left-[320px] right-0 bottom-[80px] px-4 md:px-8 py-4 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800 z-40 transition-colors"
               >
                 <div className="max-w-4xl mx-auto relative">
@@ -944,7 +951,10 @@ function ChatInterface() {
                   onClick={() => {
                     const newValue = !settingOnline;
                     setSettingOnline(newValue);
-                    localStorage.setItem("chat_setting_online", String(newValue));
+                    localStorage.setItem(
+                      "chat_setting_online",
+                      String(newValue),
+                    );
                   }}
                   className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${settingOnline ? "bg-[#a855f7]" : "bg-gray-700"}`}
                 >
@@ -970,7 +980,7 @@ function ChatInterface() {
                         key={wp.id}
                         onClick={() => {
                           setChatWallpaper(wp.url);
-                          localStorage.setItem("chatWallpaper", wp.url); 
+                          localStorage.setItem("chatWallpaper", wp.url);
                         }}
                         className={`relative w-[84px] h-[112px] rounded-2xl flex-shrink-0 bg-cover bg-center overflow-hidden transition-all duration-200 snap-center ${isSelected ? "border-[3px] border-[#a855f7] scale-95" : "border border-gray-800 hover:border-gray-700"}`}
                         style={{
