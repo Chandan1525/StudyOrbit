@@ -1,13 +1,16 @@
+/* 🔥 Plus Jakarta Sans for Headlines & Inter for Body 🔥 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
+
 @variant dark (&:where(.dark, .dark *));
 
 /* ─── Tailwind v4 theme tokens ───────────────────────────────────────────── */
 @theme {
-  /* font-sans  →  Inter  (body, UI, all reading text) */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* font-sans  →  Inter  (body, UI, all reading text like feed cards) */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  /* font-display  →  Syne  (headlines, brand numbers) */
-  --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  /* 🔥 font-display  →  Plus Jakarta Sans  (headlines, big bold text) 🔥 */
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 
   /* Feed scroll keyframe registered as a Tailwind animation token */
   --animate-feed-scroll: feedScroll 22s linear infinite;
@@ -25,7 +28,8 @@ html {
 }
 
 :root {
-  --accent-color: #6366f1;
+  /* 🔥 Premium Accent Color 🔥 */
+  --accent-color: #6c63ff; 
 }
 
 /* ─── Dynamic accent utilities ───────────────────────────────────────────── */
@@ -48,15 +52,10 @@ html {
 }
 
 /* ─── Feed scroll animation (utility class) ──────────────────────────────── */
-/*
-  Tailwind v4 generates .animate-feed-scroll from the @theme token above.
-  This explicit rule is a fallback for any edge cases.
-*/
 .animate-feed-scroll {
   animation: feedScroll 22s linear infinite;
 }
 
-/* Pause on hover so users can read the cards */
 .animate-feed-scroll:hover {
   animation-play-state: paused;
 }
@@ -69,7 +68,7 @@ select {
   -webkit-user-select: auto !important;
   user-select: auto !important;
   touch-action: manipulation !important;
-  font-size: 16px !important; /* prevents iOS auto-zoom on focus */
+  font-size: 16px !important; 
 }
 
 body,

@@ -102,7 +102,11 @@ function FluidBackground() {
     `;
 
     // Boilerplate WebGL setup
-    function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+    function createShader(
+      gl: WebGLRenderingContext,
+      type: number,
+      source: string,
+    ) {
       const shader = gl.createShader(type);
       if (!shader) return null;
       gl.shaderSource(shader, source);
@@ -126,7 +130,9 @@ function FluidBackground() {
     gl.useProgram(program);
 
     // Create a full-screen quad
-    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+    const vertices = new Float32Array([
+      -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
+    ]);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
@@ -301,7 +307,8 @@ export default function HeroSection() {
             </div>
 
             {/* Headline — font-display = Syne (via globals.css @theme) */}
-            <h1 className="font-display text-[40px] md:text-[56px] font-extrabold leading-[1.08] tracking-tight mb-6 text-white">
+            {/* 🔥 Headline — Large Font Size Applied 🔥 */}
+            <h1 className="font-display text-[50px] md:text-[72px] font-bold leading-[1] tracking-tight mb-8 text-white">
               LinkedIn for <br />
               <span className="text-[#6c63ff]">tech students.</span>
               <br />
@@ -311,8 +318,8 @@ export default function HeroSection() {
             {/* Subtext — font-sans = Inter */}
             <p className="font-sans text-[#7a7a8c] text-[16px] leading-relaxed mb-10 max-w-[440px]">
               Share projects, discover hackathons, join communities and chat
-              with people who actually care about tech — not reels, not
-              filters, not noise.
+              with people who actually care about tech — not reels, not filters,
+              not noise.
             </p>
 
             {/* CTAs */}
