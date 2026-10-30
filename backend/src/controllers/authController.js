@@ -32,7 +32,7 @@ const safeUser = (user) => ({
   mobile: user.mobile,
   bio: user.bio || user.about || "", 
   skills: user.skills || [],
-  avatar: user.avatar || "",
+  avatar: (user.avatar && user.avatar.length > 20000 && user.avatar.startsWith("data:")) ? "" : (user.avatar || ""),
   location: user.location || "",
   website: user.website || "",
   github: user.github || "",

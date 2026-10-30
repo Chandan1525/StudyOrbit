@@ -190,6 +190,24 @@ function LoginForm() {
     return "http://localhost:5000";
   };
 
+  const safeSetUser = (user: any) => {
+    if (!user) return;
+    try {
+      const clean = { ...user };
+      if (clean.avatar && clean.avatar.length > 50000 && clean.avatar.startsWith("data:")) {
+        clean.avatar = "";
+      }
+      localStorage.setItem("user", JSON.stringify(clean));
+    } catch {
+      try {
+        const minimal = { id: user.id || user._id, name: user.name, username: user.username, email: user.email };
+        localStorage.setItem("user", JSON.stringify(minimal));
+      } catch {
+        // If storage is totally full, token is still preserved
+      }
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
@@ -213,7 +231,7 @@ function LoginForm() {
 
       if (response.ok && data.success) {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        safeSetUser(data.user);
 
         if (callbackUrl) {
           router.push(callbackUrl);
@@ -285,7 +303,7 @@ function LoginForm() {
           sessionStorage.setItem(tokenKey, "done");
         }
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        safeSetUser(data.user);
 
         if (callbackUrl) {
           router.push(callbackUrl);

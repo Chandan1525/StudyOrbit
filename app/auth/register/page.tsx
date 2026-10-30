@@ -197,6 +197,24 @@ export default function RegisterPage() {
     return "http://localhost:5000";
   };
 
+  const safeSetUser = (user: any) => {
+    if (!user) return;
+    try {
+      const clean = { ...user };
+      if (clean.avatar && clean.avatar.length > 50000 && clean.avatar.startsWith("data:")) {
+        clean.avatar = "";
+      }
+      localStorage.setItem("user", JSON.stringify(clean));
+    } catch {
+      try {
+        const minimal = { id: user.id || user._id, name: user.name, username: user.username, email: user.email };
+        localStorage.setItem("user", JSON.stringify(minimal));
+      } catch {
+        // quota exceeded fallback
+      }
+    }
+  };
+
   // ───────────────── STANDARD REGISTER ─────────────────
   const handleRegister = async () => {
     if (!name || !username || !email || !phone || !password) {
@@ -271,7 +289,7 @@ export default function RegisterPage() {
       if (res.ok && data?.success) {
         localStorage.setItem("token", data.token);
         if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
+          safeSetUser(data.user);
         }
         router.push("/dashboard");
       } else {
