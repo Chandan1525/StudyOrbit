@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
@@ -6,7 +7,12 @@ import twilio from "twilio";
 import crypto from "crypto"; 
 import { resend } from "../config/resend.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  "58335293080-50hknia78iak3a7i8bf4ea8lu8s9cvmm.apps.googleusercontent.com";
+
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // ── Helper: generate JWT ──────────────────────────────────────────────
 const generateToken = (userId, sessionId) => {
@@ -37,12 +43,19 @@ const safeUser = (user) => ({
 export const googleLogin = async (req, res) => {
   try {
     const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ success: false, message: "Missing Google credential token." });
+    }
     const ticket = await client.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: (GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) || undefined,
     });
     const payload = ticket.getPayload();
-    const { email, name, picture } = payload;
+    if (!payload || !payload.email) {
+      return res.status(400).json({ success: false, message: "Invalid Google credential payload." });
+    }
+    const { email, picture } = payload;
+    const name = payload.name || email.split("@")[0] || "User";
 
     const sessionId = crypto.randomUUID();
     const device = req.headers["user-agent"] || "Unknown Device";
@@ -54,7 +67,7 @@ export const googleLogin = async (req, res) => {
       const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       user = await User.create({
         name: name, 
-        username: name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000), 
+        username: `${(name || "user").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "user"}${Math.floor(1000 + Math.random() * 9000)}`, 
         email: email,
         password: randomPassword,
         isOtpVerified: true, 
@@ -63,7 +76,11 @@ export const googleLogin = async (req, res) => {
         sessions: [{ sessionId, device, ip }]
       });
     } else {
+      if (!Array.isArray(user.sessions)) user.sessions = [];
       user.sessions.push({ sessionId, device, ip });
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+      }
       await user.save();
     }
 

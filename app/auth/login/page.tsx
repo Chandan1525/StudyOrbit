@@ -176,6 +176,20 @@ function LoginForm() {
 
   const callbackUrl = searchParams.get("callbackUrl");
 
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return process.env.NEXT_PUBLIC_BACKEND_URL;
+    }
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      return "https://studyorbit-backend-0chi.onrender.com";
+    }
+    return "http://localhost:5000";
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
@@ -187,7 +201,7 @@ function LoginForm() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/login`,
+        `${getBackendUrl()}/api/auth/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -222,12 +236,16 @@ function LoginForm() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: any, tokenKey?: string) => {
+    if (!credentialResponse?.credential) {
+      setError("No Google credential received. Please try again.");
+      return;
+    }
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/google`,
+      let res = await fetch(
+        "/api/auth/google",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -235,9 +253,37 @@ function LoginForm() {
         }
       );
 
-      const data = await res.json();
+      if (!res.ok) {
+        try {
+          const directRes = await fetch(`${getBackendUrl()}/api/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: credentialResponse.credential }),
+          });
+          if (directRes.ok) {
+            res = directRes;
+          }
+        } catch (err: any) {
+          // Keep original res
+        }
+      }
 
-      if (res.ok && data.success) {
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch (err: any) {
+        throw new Error(
+          res.status === 502 || res.status === 503 || res.status === 504
+            ? "Authentication server is currently waking up. Please wait 10 seconds and try again."
+            : `Server returned an unexpected response (${res.status}).`
+        );
+      }
+
+      if (res.ok && data?.success) {
+        if (tokenKey) {
+          sessionStorage.setItem(tokenKey, "done");
+        }
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
@@ -247,10 +293,21 @@ function LoginForm() {
           router.push("/dashboard");
         }
       } else {
-        setError(data.message || "Google Login failed.");
+        if (tokenKey) {
+          sessionStorage.removeItem(tokenKey);
+        }
+        setError(data?.message || "Google Login failed.");
       }
-    } catch {
-      setError("Cannot connect to server for Google Login.");
+    } catch (err: any) {
+      console.error("Google Login Error:", err);
+      if (tokenKey) {
+        sessionStorage.removeItem(tokenKey);
+      }
+      if (err?.message && !err.message.includes("fetch")) {
+        setError(err.message);
+      } else {
+        setError("Cannot connect to server for Google Login. Make sure the backend server is active.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -261,10 +318,11 @@ function LoginForm() {
   useEffect(() => {
     if (googleCredential) {
       const tokenKey = `used_token_${googleCredential.substring(0, 20)}`;
-      if (!sessionStorage.getItem(tokenKey)) {
-        sessionStorage.setItem(tokenKey, "true");
+      const tokenStatus = sessionStorage.getItem(tokenKey);
+      if (tokenStatus !== "done" && tokenStatus !== "pending") {
+        sessionStorage.setItem(tokenKey, "pending");
         router.replace(pathname);
-        handleGoogleSuccess({ credential: googleCredential });
+        handleGoogleSuccess({ credential: googleCredential }, tokenKey);
       }
     }
   }, [googleCredential, pathname, router]);

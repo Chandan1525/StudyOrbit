@@ -183,6 +183,20 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return process.env.NEXT_PUBLIC_BACKEND_URL;
+    }
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      return "https://studyorbit-backend-0chi.onrender.com";
+    }
+    return "http://localhost:5000";
+  };
+
   // ───────────────── STANDARD REGISTER ─────────────────
   const handleRegister = async () => {
     if (!name || !username || !email || !phone || !password) {
@@ -192,7 +206,7 @@ export default function RegisterPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/register`,
+        `${getBackendUrl()}/api/auth/register`,
         {
           method: "POST",
           headers: {
@@ -224,8 +238,8 @@ export default function RegisterPage() {
   // ───────────────── GOOGLE REGISTER ─────────────────
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"}/api/auth/google`,
+      let res = await fetch(
+        "/api/auth/google",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -233,11 +247,32 @@ export default function RegisterPage() {
         },
       );
 
-      const data = await res.json();
+      if (!res.ok) {
+        try {
+          const directRes = await fetch(`${getBackendUrl()}/api/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: credentialResponse.credential }),
+          });
+          if (directRes.ok) res = directRes;
+        } catch {
+          // ignore, keep res
+        }
+      }
 
-      if (res.ok && data.success) {
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server returned an invalid response. The backend might still be waking up.");
+      }
+
+      if (res.ok && data?.success) {
         localStorage.setItem("token", data.token);
-        alert("Google Account Created & Logged In!");
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
         router.push("/dashboard");
       } else {
         alert(data.message || "Google Registration failed on server");

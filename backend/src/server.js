@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -24,6 +25,24 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+  "https://study-orbit-taupe.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+export const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (/\.vercel\.app$/.test(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  if (/^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin)) return true;
+  return false;
+};
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -33,6 +52,9 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001",
       "https://study-orbit-taupe.vercel.app"
     ],
     methods: ["GET", "POST"],
@@ -128,8 +150,24 @@ io.on("connection", (socket) => {
 
 
 // --- MIDDLEWARE ---
-app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000", credentials: true }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false,
+  })
+);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+};
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
@@ -141,7 +179,8 @@ if (process.env.NODE_ENV !== "production") {
 // --- RATE LIMITING ---
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 100,
+  validate: { xForwardedForHeader: false, trustProxy: false },
   message: { success: false, message: "Too many attempts, please try again later." },
 });
 
@@ -150,7 +189,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/posts", postRoutes);
 
 app.use('/api/messages', messageRoutes);
-app.use('/api/auth', authRoutes);
+
 app.use('/api/users', userRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -192,7 +231,12 @@ app.use((req, res) => {
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.stack);
-  res.status(500).json({ success: false, message: "Internal server error." });
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.status(500).json({ success: false, message: err.message || "Internal server error." });
 });
 
 const PORT = process.env.PORT || 5000;
